@@ -150,7 +150,7 @@ class AdminCog(commands.Cog):
         try:
             exec(to_compile, env) # pylint: disable=exec-used
         except Exception as err:
-            return await ctx.send(f'```py\n{err.__class__.__name__}: {err}\n```')
+            return await ctx.reply(f'```py\n{err.__class__.__name__}: {err}\n```')
 
         func = env['func']
         try:
@@ -158,17 +158,17 @@ class AdminCog(commands.Cog):
                 ret = await func()
         except Exception as err:
             value = stdout.getvalue()
-            await ctx.send(f'```py\n{value}{traceback.format_exc()[:1990]}\n```')
+            await ctx.reply(f'```py\n{value}{traceback.format_exc()[:1990]}\n```')
         else:
             value = stdout.getvalue()
             await ctx.message.add_reaction('\u2705')
 
             if ret is None:
                 if value:
-                    await ctx.send(f'```py\n{value}\n```')
+                    await ctx.reply(f'```py\n{value}\n```')
             else:
                 self._last_result = ret
-                await ctx.send(f'```py\n{value}{ret}\n```')
+                await ctx.reply(f'```py\n{value}{ret}\n```')
 
 
     @app_commands.command(name="ping")
