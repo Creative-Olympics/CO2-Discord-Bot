@@ -21,11 +21,13 @@ class CObot(commands.Bot):
         intents.integrations = False
         intents.members = True
         intents.presences = True
-        super().__init__(command_prefix="!", status=status, allowed_mentions=allowed_mentions, intents=intents, enable_debug_events=True)
+        self.config = Config() # load config from .json file
+        owner_ids = self.config["ADMIN_IDS"]
+        super().__init__(command_prefix=commands.when_mentioned_or("!"), owner_ids=owner_ids, status=status,
+                         allowed_mentions=allowed_mentions, intents=intents, enable_debug_events=True)
         self.beta = beta # if the bot is in beta mode
         self.log = setup_logger() # logs module
         self.zws = "\u200B"  # here's a zero width space
-        self.config = Config() # load config from .json file
         # app commands
         self.tree.on_error = self.on_app_cmd_error
         self.app_commands_list: Optional[list[discord.app_commands.AppCommand]] = None
@@ -63,3 +65,6 @@ class CObot(commands.Bot):
             return f"`{command.qualified_name}`"
         self.log.error("Trying to mention invalid command: %s", command_name)
         return f"`{command_name}`"
+
+
+COInteraction = discord.Interaction[CObot] # use generic interaction class with custom bot clas

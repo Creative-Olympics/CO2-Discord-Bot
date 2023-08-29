@@ -22,7 +22,7 @@ check_libs()
 import discord
 import asyncio
 
-from src.boot_utils import setup_start_parser
+from src.boot_utils import load_cogs, setup_start_parser
 from src.CObot import CObot
 
 
@@ -45,6 +45,7 @@ async def main():
         print('------')
 
     async with client:
+        await load_cogs(client)
         if args.beta:
             token = client.config["DISCORD_BETA_TOKEN"]
         else:

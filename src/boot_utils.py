@@ -2,6 +2,13 @@ import argparse
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
+from typing import TYPE_CHECKING
+
+import discord
+from LRFutils import progress
+
+if TYPE_CHECKING:
+    from .CObot import CObot
 
 
 def setup_start_parser():
@@ -32,3 +39,24 @@ def setup_logger():
 
     log.setLevel(logging.DEBUG)
     return log
+
+async def load_cogs(bot: "CObot"):
+    "Load the bot modules"
+    extensions = [
+        "admin",
+    ]
+    progress_bar = progress.Bar(max=len(extensions), width=60, prefix="Loading extensions", eta=False, show_duration=False)
+
+    # Here we load our extensions (cogs) listed above in [extensions]
+    count = 0
+    for i, extension in enumerate(extensions):
+        progress_bar(i)
+        try:
+            await bot.load_extension("src.modules." + extension)
+        except discord.DiscordException:
+            bot.log.critical('Failed to load extension %s', extension, exc_info=True)
+            count += 1
+        if count  > 0:
+            bot.log.critical("%s modules not loaded\nEnd of program", count)
+            sys.exit()
+    progress_bar(len(extensions), stop=True)
