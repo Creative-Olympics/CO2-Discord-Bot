@@ -23,7 +23,7 @@ class CObot(commands.Bot):
         intents.presences = True
         self.config = Config() # load config from .json file
         owner_ids = self.config["ADMIN_IDS"]
-        super().__init__(command_prefix=commands.when_mentioned_or("!"), owner_ids=owner_ids, status=status,
+        super().__init__(command_prefix=commands.when_mentioned, owner_ids=owner_ids, status=status,
                          allowed_mentions=allowed_mentions, intents=intents, enable_debug_events=True)
         self.beta = beta # if the bot is in beta mode
         self.log = setup_logger() # logs module
