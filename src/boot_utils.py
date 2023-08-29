@@ -44,6 +44,7 @@ async def load_cogs(bot: "CObot"):
     "Load the bot modules"
     extensions = [
         "admin",
+        "errors",
     ]
     progress_bar = progress.Bar(max=len(extensions), width=60, prefix="Loading extensions", eta=False, show_duration=False)
 
