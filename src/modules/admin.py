@@ -175,7 +175,14 @@ class AdminCog(commands.Cog):
     @app_commands.checks.cooldown(3, 15)
     async def ping(self, interaction: COInteraction):
         """Pong!"""
-        await interaction.response.send_message("Pong!")
+        await interaction.response.send_message("Ping...")
+        msg = await interaction.original_response()
+        bot_delta = (msg.created_at - interaction.created_at).total_seconds()
+        try:
+            api_latency = round(self.bot.latency*1000)
+        except OverflowError:
+            api_latency = "∞"
+        await msg.edit(content=f":ping_pong:  Pong!\nBot ping: {bot_delta*1000:.0f}ms\nDiscord ping: {api_latency}ms")
 
 
 async def setup(bot: CObot):
