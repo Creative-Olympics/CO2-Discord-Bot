@@ -1,5 +1,6 @@
 env/
 .vscode/
 config.json
+firebaseServiceAccount.json
 logs/*.log
 __pycache__
