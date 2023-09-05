@@ -125,6 +125,42 @@ class ErrorsCog(commands.Cog):
         # All other Errors not returned come here... And we can just print the default TraceBack.
         self.bot.log.warning(f'Ignoring exception in command {ctx.message.content}:')
         await self.on_error(error,ctx)
+
+    @commands.Cog.listener()
+    async def on_interaction_error(self, interaction: COInteraction, error: BaseException):
+        "Called when an error is raised during an interaction"
+        send = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
+        if isinstance(error, discord.app_commands.CommandOnCooldown):
+            if await self.can_send_cooldown_error(interaction.user.id):
+                delay = round(error.retry_after, 2 if error.retry_after < 60 else None)
+                await send(
+                    f"You are on cooldown for this command :confused: Please wait %{delay} more seconds...",
+                    ephemeral=True)
+            return
+        if isinstance(error, discord.app_commands.CheckFailure):
+            await send("Oops, it looks like you're not allowed to use this command. Contact our staff to find out why!", 
+                       ephemeral=True)
+        if interaction.guild:
+            guild = f"{interaction.guild.name} | {get_channel_name(interaction)}"
+        elif interaction.guild_id:
+            guild = f"guild {interaction.guild_id}"
+        else:
+            guild = f"DM with {interaction.user}"
+        if interaction.type == discord.InteractionType.application_command:
+            await self.on_error(error, interaction)
+        elif interaction.type == discord.InteractionType.ping:
+            await self.on_error(error, f"Ping interaction | {guild}")
+        elif interaction.type == discord.InteractionType.modal_submit:
+            await self.on_error(error, f"Modal submission interaction | {guild}")
+        elif interaction.type == discord.InteractionType.component:
+            await self.on_error(error, f"Component interaction | {guild}")
+        elif interaction.type == discord.InteractionType.autocomplete:
+            await self.on_error(error, f"Command autocompletion | {guild}")
+        else:
+            self.bot.log.warn(f"Unhandled interaction error type: {interaction.type}")
+            await self.on_error(error, None)
+        await send("Oops, an error occured while executing this command :confused:", ephemeral=True)
+
     
     @commands.Cog.listener()
     async def on_error(self, error: BaseException, ctx: Optional[AllowedCtx] = None):
