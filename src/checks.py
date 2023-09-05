@@ -1,4 +1,4 @@
-from .CObot import COInteraction
+from .cobot import COInteraction
 
 
 async def is_bot_admin(interaction: COInteraction) -> bool:

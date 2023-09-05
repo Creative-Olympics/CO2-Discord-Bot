@@ -14,7 +14,7 @@ from git import GitCommandError
 from git.repo import Repo
 
 from ..checks import is_bot_admin
-from ..CObot import CObot, COInteraction
+from ..cobot import CObot, COInteraction
 
 
 def cleanup_code(content: str):

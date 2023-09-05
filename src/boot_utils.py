@@ -8,7 +8,7 @@ import discord
 from LRFutils import progress
 
 if TYPE_CHECKING:
-    from .CObot import CObot
+    from .cobot import CObot
 
 
 def setup_start_parser():

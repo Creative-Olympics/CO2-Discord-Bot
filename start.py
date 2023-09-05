@@ -23,10 +23,11 @@ import discord
 import asyncio
 
 from src.boot_utils import load_cogs, setup_start_parser
-from src.CObot import CObot
+from src.cobot import CObot
 
 
 async def main():
+    "Instanciate and start the bot"
     parser = setup_start_parser()
     args = parser.parse_args()
     if not isinstance(args.beta, bool):

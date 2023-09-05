@@ -5,7 +5,7 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands, tasks
 
-from ..CObot import CObot, COInteraction
+from ..cobot import CObot, COInteraction
 
 AllowedCtx = Union[commands.Context, discord.Message, COInteraction, str]
 

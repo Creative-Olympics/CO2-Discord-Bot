@@ -4,6 +4,8 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands
 
+from src.firebase.client import FirebaseDB
+
 from .boot_utils import setup_logger
 from .config import Config
 
@@ -28,10 +30,11 @@ class CObot(commands.Bot):
         self.beta = beta # if the bot is in beta mode
         self.log = setup_logger() # logs module
         self.zws = "\u200B"  # here's a zero width space
+        self.fb = FirebaseDB("firebaseServiceAccount.json") # firebase client
         # app commands
         self.tree.on_error = self.on_app_cmd_error
         self.app_commands_list: Optional[list[discord.app_commands.AppCommand]] = None
-    
+
 
     async def on_error(self, event_method: Union[Exception, str], *_args, **_kwargs):
         "Called when an event listener raises an uncaught exception"
@@ -67,4 +70,4 @@ class CObot(commands.Bot):
         return f"`{command_name}`"
 
 
-COInteraction = discord.Interaction[CObot] # use generic interaction class with custom bot clas
+COInteraction = discord.Interaction[CObot] # use generic interaction class with custom bot class
