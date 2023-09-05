@@ -13,8 +13,8 @@ from discord.ext import commands
 from git import GitCommandError
 from git.repo import Repo
 
-from ..checks import is_bot_admin
-from ..cobot import CObot, COInteraction
+from src.checks import is_bot_admin
+from src.cobot import CObot, COInteraction
 
 
 def cleanup_code(content: str):
@@ -32,10 +32,6 @@ class AdminCog(commands.Cog):
     def __init__(self, bot: CObot):
         self.bot = bot
         self._last_result: Any = None
-    
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, err):
-        print(err)
 
     group = discord.app_commands.Group(
         name="admin",
@@ -110,7 +106,7 @@ class AdminCog(commands.Cog):
         await interaction.followup.send(txt + '!')
 
     @group.command(name="change-activity")
-    async def change_activity(self, interaction: COInteraction,
+    async def change_activity(self, _interaction: COInteraction,
                               activity_type: Literal["play", "watch", "listen", "stream"], *, text: str):
         "Change the bot status activity"
         if activity_type == "play":

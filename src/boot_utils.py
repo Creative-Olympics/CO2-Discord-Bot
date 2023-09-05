@@ -53,7 +53,7 @@ async def load_cogs(bot: "CObot"):
     for i, extension in enumerate(extensions):
         progress_bar(i)
         try:
-            await bot.load_extension("src.modules." + extension)
+            await bot.load_extension(f"src.modules.{extension}.main")
         except discord.DiscordException:
             bot.log.critical('Failed to load extension %s', extension, exc_info=True)
             count += 1

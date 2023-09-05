@@ -5,11 +5,12 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands, tasks
 
-from ..cobot import CObot, COInteraction
+from src.cobot import CObot, COInteraction
 
 AllowedCtx = Union[commands.Context, discord.Message, COInteraction, str]
 
 def get_channel_name(ctx: Union[commands.Context, discord.Message, COInteraction]):
+    "Compute the name of the channel from a given error context"
     if ctx.channel is None or isinstance(ctx.channel, discord.PartialMessageable):
         return "unknown channel"
     if isinstance(ctx.channel, discord.DMChannel):
