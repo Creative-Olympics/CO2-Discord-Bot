@@ -45,6 +45,7 @@ async def load_cogs(bot: "CObot"):
     extensions = [
         "admin",
         "errors",
+        "giveaways",
     ]
     progress_bar = progress.Bar(max=len(extensions), width=60, prefix="Loading extensions", eta=False, show_duration=False)
 

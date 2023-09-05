@@ -20,3 +20,8 @@ class FirebaseDB:
     async def get_user_general(self, user_id: str):
         "Get the General document snapshot for a user"
         return await self.__client.document(f"users/{user_id}/public/general").get()
+
+    async def get_giveaways(self):
+        "Get a generator of giveaway documents"
+        async for doc in self.__client.collection("giveaways").stream(): # type: ignore
+            yield doc
