@@ -12,5 +12,6 @@ class GiveawayData(TypedDict):
     max_entries: int
     winners_count: int
     ends_at: datetime
+    ended: bool
     participants: list[int]
     winners: list[int]

@@ -2,6 +2,7 @@ from typing import AsyncGenerator
 
 import firebase_admin
 from firebase_admin import credentials, firestore_async
+from firebase_admin.firestore import firestore
 
 
 class FirebaseDB:
@@ -24,4 +25,21 @@ class FirebaseDB:
     async def get_giveaways(self):
         "Get a generator of giveaway documents"
         async for doc in self.__client.collection("giveaways").stream(): # type: ignore
+            yield doc
+
+    async def get_active_giveaways(self) -> AsyncGenerator[firestore.DocumentSnapshot, None]:
+        """Get a generator of active giveaway documents (ie. not 'ended')
+        Note: this may include giveaways that have a past end date but have not been marked as ended yet"""
+        ended_filter = firestore.FieldFilter("ended", "==", False)
+        docs = self.__client.collection("giveaways").where(filter=ended_filter).stream()
+        async for doc in docs: # type: ignore
+            yield doc
+
+    async def get_pending_ending_giveaways(self) -> AsyncGenerator[firestore.DocumentSnapshot, None]:
+        "Get a generator of giveaway documents that are pending ending (ie. not 'ended' but have a past end date)"
+        now = firestore.SERVER_TIMESTAMP
+        ended_filter = firestore.FieldFilter("ended", "==", False)
+        date_filter = firestore.FieldFilter("ends_at", "<=", now)
+        docs = self.__client.collection("giveaways").where(filter=ended_filter).where(filter=date_filter).stream()
+        async for doc in docs: # type: ignore
             yield doc

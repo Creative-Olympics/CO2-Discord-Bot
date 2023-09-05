@@ -25,21 +25,22 @@ class GiveawaysCog(commands.Cog):
         await interaction.response.defer()
         text = ""
         now = discord.utils.utcnow()
-        async for doc in self.bot.fb.get_giveaways():
-            gaw_id = doc.id
+        docs = self.bot.fb.get_giveaways() if include_stopped else self.bot.fb.get_active_giveaways()
+        async for doc in docs:
             gaw: GiveawayData = doc.to_dict() # type: ignore
             if not include_stopped and gaw["ends_at"] < now:
                 continue
             name = gaw["name"]
             participants_count = len(gaw["participants"])
-            text += f"**{gaw_id}.** {name}  -  "
+            text += f"**{name}**  -  "
             if participants_count == 0:
                 text += "no participant"
             elif participants_count == 1:
                 text += "1 participant"
             else:
                 text += f"{participants_count} participants"
-            text += "\n"
+            end_date = discord.utils.format_dt(gaw["ends_at"], "R")
+            text += f" - {end_date}\n"
         embed = discord.Embed(
             title=("List of all giveaways" if include_stopped else "List of active giveaways"),
             description=text,
