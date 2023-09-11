@@ -31,13 +31,16 @@ class GiveawaysCog(commands.Cog):
         async for gaw in docs:
             name = gaw["name"]
             text += f"**{name}**  -  "
-            # participants_count = len(gaw["participants"])
-            # if participants_count == 0:
-            #     text += "no participant - "
-            # elif participants_count == 1:
-            #     text += "1 participant - "
-            # else:
-            #     text += f"{participants_count} participants - "
+            if participants := await self.bot.fb.get_giveaways_participants(gaw["id"]):
+                participants_count = len(participants)
+                if participants_count == 0:
+                    text += "no participant - "
+                elif participants_count == 1:
+                    text += "1 participant - "
+                else:
+                    text += f"{participants_count} participants - "
+            else:
+                self.bot.log.warning("Could not get participants for giveaway %s", gaw["id"])
             end_date = discord.utils.format_dt(gaw["ends_at"], "R")
             if gaw["ends_at"] > now:
                 text += f"ends in {end_date}\n"
@@ -73,7 +76,6 @@ class GiveawaysCog(commands.Cog):
             "winners_count": winners_count,
             "ends_at": discord.utils.parse_time(duration),
             "ended": False,
-            "participants": [],
             "winners": []
         }
 

@@ -12,7 +12,6 @@ class GiveawayToSendData(TypedDict):
     winners_count: int
     ends_at: datetime
     ended: bool
-    participants: list[int]
     winners: list[int]
 
 class RawGiveawayData(TypedDict):
@@ -27,11 +26,11 @@ class RawGiveawayData(TypedDict):
     winners_count: int
     ends_at: str
     ended: bool
-    participants: list[int]
     winners: list[int]
 
 class GiveawayData(TypedDict):
     "Data for a giveaway instance stored in Firestore"
+    id: str
     guild: int
     channel: int
     message: int
@@ -42,5 +41,4 @@ class GiveawayData(TypedDict):
     winners_count: int
     ends_at: datetime
     ended: bool
-    participants: list[int]
     winners: list[int]
