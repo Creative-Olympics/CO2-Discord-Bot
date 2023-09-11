@@ -30,7 +30,11 @@ class CObot(commands.Bot):
         self.beta = beta # if the bot is in beta mode
         self.log = setup_logger() # logs module
         self.zws = "\u200B"  # here's a zero width space
-        self.fb = FirebaseDB("firebaseServiceAccount.json") # firebase client
+        self.fb = FirebaseDB( # firebase client
+            "firebaseServiceAccount.json",
+            realtime_url=self.config["FIREBASE_REALTIME_DATABASE_URL"],
+            auth_uuid=self.config["FIREBASE_REALTIME_AUTH_UUID"]
+        )
         # app commands
         self.tree.on_error = self.on_app_cmd_error
         self.app_commands_list: Optional[list[discord.app_commands.AppCommand]] = None

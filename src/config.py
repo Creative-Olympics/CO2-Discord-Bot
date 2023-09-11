@@ -10,6 +10,8 @@ class _ConfigType(TypedDict):
     MAIN_GUILD_ID: int
     ERRORS_CHANNEL_ID: int
     ADMIN_IDS: list[int]
+    FIREBASE_REALTIME_DATABASE_URL: str
+    FIREBASE_REALTIME_AUTH_UUID: str
 
 
 class Config:
@@ -33,6 +35,12 @@ class Config:
     @overload
     def __getitem__(self, key: Literal["ADMIN_IDS"]) -> list[int]: ...
 
+    @overload
+    def __getitem__(self, key: Literal["FIREBASE_REALTIME_DATABASE_URL"]) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["FIREBASE_REALTIME_AUTH_UUID"]) -> str: ...
+
     def __getitem__(self, key: str):
         return self.data[key]
 
@@ -40,20 +48,21 @@ class Config:
         "Check if the loaded config is valid (ie. respects the typing class)"
         if not isinstance(self.data, dict):
             raise TypeError("config.json is not a dict")
-        for key in _ConfigType.__annotations__:
+        for key in _ConfigType.__annotations__: # pylint: disable=no-member
             if key not in self.data:
                 raise KeyError(f"config.json is missing key {key}")
-            annotation_value = _ConfigType.__annotations__[key]
+            annotation_value = _ConfigType.__annotations__[key] # pylint: disable=no-member
             if hasattr(annotation_value, "__origin__"):
                 annotation_value = annotation_value.__origin__
             if not isinstance(self.data[key], annotation_value):
                 raise TypeError(
                     f"config.json key {key} is not of type {annotation_value}")
-        for id in self.data["ADMIN_IDS"]:
-            if not isinstance(id, int):
+        for user_id in self.data["ADMIN_IDS"]:
+            if not isinstance(user_id, int):
                 raise TypeError("config.json key ADMIN_IDS contains non-integers")
 
 def get_guild_snowflake_object():
+    "Create a discord.Object from the MAIN_GUILD_ID key in config.json"
     with open("config.json", "r", encoding="utf-8") as file:
         data: _ConfigType = json.load(file)
     guild_id = data["MAIN_GUILD_ID"]
