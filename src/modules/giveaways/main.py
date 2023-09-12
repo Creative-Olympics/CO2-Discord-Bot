@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from src.cobot import CObot, COInteraction
+from src.custom_args import ColorOption
 from src.modules.giveaways.types import GiveawayToSendData
 
 
@@ -56,7 +57,7 @@ class GiveawaysCog(commands.Cog):
     @group.command(name="create")
     async def gw_create(self, interaction: COInteraction, *, name: str, description: str,
                         duration: str, channel: Optional[discord.TextChannel]=None,
-                        color: Optional[str]=None, max_entries: int=1,
+                        color: Optional[ColorOption]=None, max_entries: int=1,
                         winners_count: int=1):
         "Create a giveaway"
         if interaction.guild is None:
@@ -64,20 +65,20 @@ class GiveawaysCog(commands.Cog):
         target_channel = channel or interaction.channel
         if target_channel is None:
             return
-        parsed_color = discord.Color.from_str(color) if color else None
         await interaction.response.defer()
         data: GiveawayToSendData = {
             "guild": interaction.guild.id,
             "channel": target_channel.id,
             "name": name,
             "description": description,
-            "color": parsed_color.value if parsed_color else self.embed_color,
+            "color": color.value if color else self.embed_color,
             "max_entries": max_entries,
             "winners_count": winners_count,
             "ends_at": discord.utils.parse_time(duration),
             "ended": False,
             "winners": []
         }
+        await interaction.followup.send(str(data))
 
 
 
