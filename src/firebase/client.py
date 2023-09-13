@@ -42,6 +42,14 @@ class FirebaseDB:
                 "ends_at": dt.fromisoformat(gaw["ends_at"])
             } # type: ignore
 
+    async def create_giveaway(self, data: GiveawayData):
+        "Create a giveaway document"
+        ref = db.reference("giveaways")
+        ref.child(data["id"]).set({
+            **data,
+            "ends_at": data["ends_at"].isoformat()
+        })
+
     async def get_giveaways_participants(self, giveaway_id: str) -> Optional[list[int]]:
         "Get a list of participants for a giveaway"
         ref = db.reference(f"participants/{giveaway_id}")
