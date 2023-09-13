@@ -34,17 +34,15 @@ class GiveawaysCog(commands.Cog):
         docs = self.bot.fb.get_giveaways() if include_stopped else self.bot.fb.get_active_giveaways()
         async for gaw in docs:
             name = gaw["name"]
-            text += f"**{name}**  -  "
+            text += f"- **{name}**  -  "
             if participants := await self.bot.fb.get_giveaways_participants(gaw["id"]):
                 participants_count = len(participants)
-                if participants_count == 0:
-                    text += "no participant - "
-                elif participants_count == 1:
+                if participants_count == 1:
                     text += "1 participant - "
                 else:
                     text += f"{participants_count} participants - "
             else:
-                self.bot.log.warning("Could not get participants for giveaway %s", gaw["id"])
+                text += "no participant - "
             end_date = discord.utils.format_dt(gaw["ends_at"], "R")
             if gaw["ends_at"] > now:
                 text += f"ends in {end_date}\n"
@@ -84,12 +82,12 @@ class GiveawaysCog(commands.Cog):
             "winners_count": winners_count,
             "ends_at": ends_date,
             "ended": False,
-            "winners": []
         }
         message = await self.send_gaw(target_channel, data)
         await self.bot.fb.create_giveaway({
             **data,
-            "message": message.id
+            "message": message.id,
+            "winners": [] # gonna be deleted anyway when saved by Firebase
         })
         await interaction.followup.send(f"Giveaway created at {message.jump_url} !")
 

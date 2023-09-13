@@ -27,7 +27,8 @@ class FirebaseDB:
             yield {
                 **gaw,
                 "id": gaw_id,
-                "ends_at": dt.fromisoformat(gaw["ends_at"])
+                "ends_at": dt.fromisoformat(gaw["ends_at"]),
+                "winners": gaw.get("winners", [])
             } # type: ignore
 
     async def get_active_giveaways(self) -> AsyncGenerator[GiveawayData, None]:
@@ -39,7 +40,8 @@ class FirebaseDB:
             yield {
                 **gaw,
                 "id": gaw_id,
-                "ends_at": dt.fromisoformat(gaw["ends_at"])
+                "ends_at": dt.fromisoformat(gaw["ends_at"]),
+                "winners": gaw.get("winners", [])
             } # type: ignore
 
     async def create_giveaway(self, data: GiveawayData):
