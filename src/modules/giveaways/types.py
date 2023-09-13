@@ -1,14 +1,15 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 class GiveawayToSendData(TypedDict):
     "Data for a giveaway instance stored in Firestore"
+    id: str
     guild: int
     channel: int
     name: str
     description: str
     color: int
-    max_entries: int
+    max_entries: Optional[int]
     winners_count: int
     ends_at: datetime
     ended: bool
@@ -22,7 +23,7 @@ class RawGiveawayData(TypedDict):
     name: str
     description: str
     color: int
-    max_entries: int
+    max_entries: Optional[int]
     winners_count: int
     ends_at: str
     ended: bool
@@ -37,7 +38,7 @@ class GiveawayData(TypedDict):
     name: str
     description: str
     color: int
-    max_entries: int
+    max_entries: Optional[int]
     winners_count: int
     ends_at: datetime
     ended: bool
