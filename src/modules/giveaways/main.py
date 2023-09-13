@@ -1,11 +1,14 @@
+from datetime import timedelta
 from typing import Optional
+from uuid import uuid4
 
 import discord
 from discord.ext import commands
 
 from src.cobot import CObot, COInteraction
-from src.custom_args import ColorOption
+from src.custom_args import ColorOption, DurationOption
 from src.modules.giveaways.types import GiveawayToSendData
+from src.modules.giveaways.views import GiveawayView
 
 
 class GiveawaysCog(commands.Cog):
@@ -56,17 +59,22 @@ class GiveawaysCog(commands.Cog):
 
     @group.command(name="create")
     async def gw_create(self, interaction: COInteraction, *, name: str, description: str,
-                        duration: str, channel: Optional[discord.TextChannel]=None,
-                        color: Optional[ColorOption]=None, max_entries: int=1,
+                        duration: DurationOption, channel: Optional[discord.TextChannel]=None,
+                        color: Optional[ColorOption]=None, max_entries: Optional[int]=None,
                         winners_count: int=1):
         "Create a giveaway"
         if interaction.guild is None:
             return
         target_channel = channel or interaction.channel
+        if not isinstance(target_channel, discord.TextChannel):
+            await interaction.response.send_message("Giveaways can only be sent in text channels!")
+            return
         if target_channel is None:
             return
         await interaction.response.defer()
+        ends_date = discord.utils.utcnow() + timedelta(seconds=duration)
         data: GiveawayToSendData = {
+            "id": uuid4().hex,
             "guild": interaction.guild.id,
             "channel": target_channel.id,
             "name": name,
@@ -74,12 +82,38 @@ class GiveawaysCog(commands.Cog):
             "color": color.value if color else self.embed_color,
             "max_entries": max_entries,
             "winners_count": winners_count,
-            "ends_at": discord.utils.parse_time(duration),
+            "ends_at": ends_date,
             "ended": False,
             "winners": []
         }
-        await interaction.followup.send(str(data))
+        message = await self.send_gaw(target_channel, data)
+        await self.bot.fb.create_giveaway({
+            **data,
+            "message": message.id
+        })
+        await interaction.followup.send(f"Giveaway created at {message.jump_url} !")
 
+    async def create_new_gaw_embed(self, data: GiveawayToSendData):
+        "Create a Discord embed for a newly created giveaway"
+        embed = discord.Embed(
+            title=data["name"],
+            description=data["description"],
+            color=data["color"],
+            timestamp=data["ends_at"]
+        )
+        if max_entries := data["max_entries"]:
+            embed.add_field(name="Participants", value=f"0/{max_entries}")
+        else:
+            embed.add_field(name="Participants", value="0")
+        embed.set_footer(text="Ends at")
+        return embed
+
+    async def send_gaw(self, channel: discord.TextChannel, data: GiveawayToSendData):
+        "Send a giveaway message in a given channel"
+        embed = await self.create_new_gaw_embed(data)
+        view = GiveawayView(self.bot, data, "Join the giveaway!")
+        msg = await channel.send(embed=embed, view=view)
+        return msg
 
 
 
