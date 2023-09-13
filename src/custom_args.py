@@ -1,6 +1,9 @@
+import re
+from datetime import datetime, timezone
 from inspect import signature
 
 import discord
+from dateutil.relativedelta import relativedelta
 from discord import app_commands
 
 
@@ -26,3 +29,43 @@ class ColorTransformer(app_commands.Transformer):
             return method()
 
 ColorOption = app_commands.Transform[discord.Color, ColorTransformer]
+
+
+# pylint: disable=abstract-method
+class DurationTransformer(app_commands.Transformer):
+    """Transform a string into a datetime.timedelta"""
+
+    # pylint: disable=arguments-differ
+    async def transform(self, interaction: discord.Interaction, value: str) -> int:
+        "Converts a string to a duration in seconds."
+        duration = 0
+        found = False
+        symbols: list[tuple[str, int]] = [
+            ('w', 604800),
+            ('d', 86400),
+            ('h', 3600),
+            ('m', 60),
+            ('min', 60)
+        ]
+        for symbol, coef in symbols:
+            if match := re.search(r'^(\d+)'+symbol+'$', value):
+                duration += int(match.group(1)) * coef
+                found = True
+        if match := re.search(r'^(\d+)h(\d+)m?$', value):
+            duration += int(match.group(1))*3600 + int(match.group(2))*60
+            found = True
+        if match := re.search(r'^(\d+) ?mo(?:nths?)?$', value):
+            now = then = datetime.now(timezone.utc)
+            then += relativedelta(months=int(match.group(1)))
+            duration += (then - now).total_seconds()
+            found = True
+        if match := re.search(r'^(\d+) ?y(?:ears?)?$', value):
+            now = then = datetime.now(timezone.utc)
+            then += relativedelta(years=int(match.group(1)))
+            duration += (then - now).total_seconds()
+            found = True
+        if not found:
+            raise ValueError("Invalid duration")
+        return round(duration)
+
+DurationOption = app_commands.Transform[int, DurationTransformer]
