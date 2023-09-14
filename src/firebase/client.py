@@ -1,4 +1,5 @@
 from datetime import datetime as dt
+import logging
 from typing import AsyncGenerator, Optional
 
 import firebase_admin
@@ -20,6 +21,7 @@ class FirebaseDB:
             # }
         })
         self.cache = FirebaseCacheControler()
+        self.log = logging.getLogger("cobot")
 
     async def get_giveaways(self) -> AsyncGenerator[GiveawayData, None]:
         "Get a generator of giveaway documents"
@@ -27,7 +29,7 @@ class FirebaseDB:
             for gaw in self.cache.get_giveaways():
                 yield gaw
             return
-        print("Fetching giveaways")
+        self.log.debug("[firebase] Fetching giveaways")
         ref = db.reference("giveaways")
         snapshot: dict[str, RawGiveawayData] = ref.get() # type: ignore
         parsed_giveaways: list[GiveawayData] = [
@@ -50,7 +52,7 @@ class FirebaseDB:
             for gaw in self.cache.get_active_giveaways():
                 yield gaw
             return
-        print("Fetching active giveaways")
+        self.log.debug("[firebase] Fetching active giveaways")
         ref = db.reference("giveaways")
         snapshot: dict[str, RawGiveawayData] = ref.order_by_child("ended").equal_to(False).get() # type: ignore
         parsed_giveaways: list[GiveawayData] = [
@@ -68,6 +70,7 @@ class FirebaseDB:
 
     async def create_giveaway(self, data: GiveawayData):
         "Create a giveaway document"
+        self.log.info("[firebase] Creating new giveaway %s", data["id"])
         ref = db.reference("giveaways")
         ref.child(data["id"]).set({
             **data,
@@ -79,7 +82,7 @@ class FirebaseDB:
         "Get a list of participants for a giveaway"
         if self.cache.are_participants_sync(giveaway_id):
             return self.cache.get_participants(giveaway_id)
-        print(f"Fetching participants for giveaway {giveaway_id}")
+        self.log.debug("[firebase] Fetching participants for giveaway %s", giveaway_id)
         ref = db.reference(f"participants/{giveaway_id}")
         snapshot: Optional[list[int]] = ref.get() # type: ignore
         self.cache.set_participants(giveaway_id, snapshot or [])
