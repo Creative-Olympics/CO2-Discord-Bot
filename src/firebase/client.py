@@ -78,14 +78,6 @@ class FirebaseDB:
         })
         self.cache.set_new_giveaway(data)
 
-    async def create_giveaway(self, data: GiveawayData):
-        "Create a giveaway document"
-        ref = db.reference("giveaways")
-        ref.child(data["id"]).set({
-            **data,
-            "ends_at": data["ends_at"].isoformat()
-        })
-
     async def get_giveaways_participants(self, giveaway_id: str) -> Optional[list[int]]:
         "Get a list of participants for a giveaway"
         if self.cache.are_participants_sync(giveaway_id):
