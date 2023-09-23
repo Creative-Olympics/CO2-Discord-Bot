@@ -18,6 +18,29 @@ class GiveawaysCog(commands.Cog):
         self.bot = bot
         self.embed_color = 0x9933ff
 
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction: discord.Interaction):
+        """Called when *any* interaction from the bot is received
+        We use it to detect interactions with any giveaway Join button"""
+        if not interaction.guild:
+            return # ignore DMs
+        if interaction.type != discord.InteractionType.component:
+            return # ignore non-button interactions
+        if not interaction.data or "custom_id" not in interaction.data:
+            return
+        custom_ids = interaction.data["custom_id"].split('-')
+        if len(custom_ids) != 2 or custom_ids[0] != "gaw":
+            return # not a giveaway button
+        await interaction.response.defer(ephemeral=True)
+        gaw_id = custom_ids[1]
+        if await self.bot.fb.get_giveaway(gaw_id) is None:
+            return # giveaway not found
+        if await self.bot.fb.check_giveaway_participant(gaw_id, interaction.user.id):
+            await interaction.followup.send(f"{interaction.user.mention} you already joined the giveaway!", ephemeral=True)
+            return # user already joined
+        await self.bot.fb.add_giveaway_participant(gaw_id, interaction.user.id)
+        await interaction.followup.send(f"{interaction.user.mention} you joined the giveaway!", ephemeral=True)
+
     group = discord.app_commands.Group(
         name="giveaways",
         description="Manage giveaways in your server",

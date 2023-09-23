@@ -1,6 +1,6 @@
 from datetime import datetime as dt
 import logging
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Literal
 
 import firebase_admin
 from firebase_admin import credentials, db
@@ -68,6 +68,24 @@ class FirebaseDB:
         for data in parsed_giveaways:
             yield data
 
+    async def get_giveaway(self, giveaway_id: str) -> Optional[GiveawayData]:
+        "Get a giveaway document"
+        if gaw := self.cache.get_giveaway(giveaway_id):
+            return gaw
+        self.log.debug("[firebase] Fetching giveaway %s", giveaway_id)
+        ref = db.reference(f"giveaways/{giveaway_id}")
+        snapshot: Optional[RawGiveawayData] = ref.get() # type: ignore
+        if snapshot is None:
+            return None
+        data: GiveawayData = {
+            **snapshot, # type: ignore
+            "id": giveaway_id,
+            "ends_at": dt.fromisoformat(snapshot["ends_at"]),
+            "winners": snapshot.get("winners", [])
+        }
+        self.cache.set_existing_giveaway(data)
+        return data
+
     async def create_giveaway(self, data: GiveawayData):
         "Create a giveaway document"
         self.log.info("[firebase] Creating new giveaway %s", data["id"])
@@ -84,6 +102,26 @@ class FirebaseDB:
             return self.cache.get_participants(giveaway_id)
         self.log.debug("[firebase] Fetching participants for giveaway %s", giveaway_id)
         ref = db.reference(f"participants/{giveaway_id}")
-        snapshot: Optional[list[int]] = ref.get() # type: ignore
-        self.cache.set_participants(giveaway_id, snapshot or [])
-        return snapshot
+        snapshot: Optional[dict[int, Literal[True]]] = ref.get() # type: ignore
+        if snapshot is None:
+            return None
+        participants = list(snapshot.keys())
+        self.cache.set_participants(giveaway_id, participants)
+        return participants
+
+    async def check_giveaway_participant(self, giveaway_id: str, user_id: int) -> bool:
+        "Check if a user is a participant of a giveaway"
+        if self.cache.are_participants_sync(giveaway_id):
+            if participants := self.cache.get_participants(giveaway_id):
+                return user_id in participants
+        self.log.debug("[firebase] Fetching participant %s for giveaway %s", user_id, giveaway_id)
+        ref = db.reference(f"participants/{giveaway_id}/{user_id}")
+        snapshot: Optional[Literal[True]] = ref.get() # type: ignore
+        return snapshot is not None
+
+    async def add_giveaway_participant(self, giveaway_id: str, user_id: int):
+        "Add a participant to a giveaway"
+        self.log.debug("[firebase] Adding participant %s to giveaway %s", user_id, giveaway_id)
+        ref = db.reference(f"participants/{giveaway_id}/{user_id}")
+        ref.set(True)
+        self.cache.add_participant(giveaway_id, user_id)

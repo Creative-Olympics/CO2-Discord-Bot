@@ -52,6 +52,11 @@ class FirebaseCacheControler:
         self.participants_cache[giveaway_id] = participants
         self.__synced_participants_giveaways.add(giveaway_id)
 
+    def add_participant(self, giveaway_id: str, participant: int):
+        "Add a participant to a giveaway, if the full list is already cached"
+        if participants := self.participants_cache.get(giveaway_id):
+            participants.append(participant)
+
     def set_giveaways(self, giveaways: list[GiveawayData]):
         "Set the giveaways"
         self.giveaways_cache = {g["id"]: g for g in giveaways}
@@ -66,3 +71,8 @@ class FirebaseCacheControler:
         "Set a new giveaway"
         self.giveaways_cache[giveaway["id"]] = giveaway
         self.participants_cache[giveaway["id"]] = []
+        self.__synced_participants_giveaways.add(giveaway["id"])
+
+    def set_existing_giveaway(self, giveaway: GiveawayData):
+        "Set an existing giveaway"
+        self.giveaways_cache[giveaway["id"]] = giveaway
