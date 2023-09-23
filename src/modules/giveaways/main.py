@@ -33,8 +33,11 @@ class GiveawaysCog(commands.Cog):
             return # not a giveaway button
         await interaction.response.defer(ephemeral=True)
         gaw_id = custom_ids[1]
-        if await self.bot.fb.get_giveaway(gaw_id) is None:
+        gaw = await self.bot.fb.get_giveaway(gaw_id)
+        if gaw is None:
             return # giveaway not found
+        if gaw["ended"] or gaw["ends_at"] < discord.utils.utcnow():
+            return # giveaway ended
         if await self.bot.fb.check_giveaway_participant(gaw_id, interaction.user.id):
             await interaction.followup.send(f"{interaction.user.mention} you already joined the giveaway!", ephemeral=True)
             return # user already joined
