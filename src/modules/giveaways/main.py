@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from src.cobot import CObot, COInteraction
 from src.custom_args import ColorOption, DurationOption
-from src.modules.giveaways.types import GiveawayToSendData
+from src.modules.giveaways.types import GiveawayData, GiveawayToSendData
 from src.modules.giveaways.views import GiveawayView
 
 
@@ -34,15 +34,9 @@ class GiveawaysCog(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         gaw_id = custom_ids[1]
         gaw = await self.bot.fb.get_giveaway(gaw_id)
-        if gaw is None:
-            return # giveaway not found
-        if gaw["ended"] or gaw["ends_at"] < discord.utils.utcnow():
-            return # giveaway ended
-        if await self.bot.fb.check_giveaway_participant(gaw_id, interaction.user.id):
-            await interaction.followup.send(f"{interaction.user.mention} you already joined the giveaway!", ephemeral=True)
-            return # user already joined
-        await self.bot.fb.add_giveaway_participant(gaw_id, interaction.user.id)
-        await interaction.followup.send(f"{interaction.user.mention} you joined the giveaway!", ephemeral=True)
+        if gaw is None or gaw["ended"] or gaw["ends_at"] < discord.utils.utcnow():
+            return # giveaway not found or ended
+        await self.register_new_participant(interaction, gaw)
 
     group = discord.app_commands.Group(
         name="giveaways",
@@ -118,8 +112,8 @@ class GiveawaysCog(commands.Cog):
         })
         await interaction.followup.send(f"Giveaway created at {message.jump_url} !")
 
-    async def create_new_gaw_embed(self, data: GiveawayToSendData):
-        "Create a Discord embed for a newly created giveaway"
+    async def create_active_gaw_embed(self, data: GiveawayToSendData, participants_count: int=0):
+        "Create a Discord embed for an active giveaway"
         embed = discord.Embed(
             title=data["name"],
             description=data["description"],
@@ -127,19 +121,51 @@ class GiveawaysCog(commands.Cog):
             timestamp=data["ends_at"]
         )
         if max_entries := data["max_entries"]:
-            embed.add_field(name="Participants", value=f"0/{max_entries}")
+            embed.add_field(name="Participants", value=f"{participants_count}/{max_entries}")
         else:
-            embed.add_field(name="Participants", value="0")
+            embed.add_field(name="Participants", value=str(participants_count))
         embed.set_footer(text="Ends at")
         return embed
 
     async def send_gaw(self, channel: discord.TextChannel, data: GiveawayToSendData):
         "Send a giveaway message in a given channel"
-        embed = await self.create_new_gaw_embed(data)
+        embed = await self.create_active_gaw_embed(data)
         view = GiveawayView(self.bot, data, "Join the giveaway!")
         msg = await channel.send(embed=embed, view=view)
         return msg
 
+    async def fetch_gaw_message(self, data: GiveawayData):
+        "Fetch the Discord message for a giveaway"
+        channel = self.bot.get_channel(data["channel"])
+        if not isinstance(channel, discord.TextChannel):
+            return None
+        try:
+            message = await channel.fetch_message(data["message"])
+        except discord.NotFound:
+            return None
+        return message
+
+    async def increase_gaw_embed_participants(self, data: GiveawayData):
+        "Fetch the Discord message for a giveaway, parse it and increment the participants count"
+        message = await self.fetch_gaw_message(data)
+        if message is None:
+            return
+        embed = message.embeds[0]
+        if embed.fields[0].value is None:
+            return
+        field_value = embed.fields[0].value.split('/')
+        field_value[0] = str(int(field_value[0]) + 1)
+        embed.set_field_at(0, name="Participants", value="/".join(field_value))
+        await message.edit(embed=embed)
+
+    async def register_new_participant(self, interaction: discord.Interaction, giveaway: GiveawayData):
+        """Register a new participant to a giveaway (when they click on the Join button)"""
+        if await self.bot.fb.check_giveaway_participant(giveaway["id"], interaction.user.id):
+            await interaction.followup.send(f"{interaction.user.mention} you already joined the giveaway!", ephemeral=True)
+            return
+        await self.bot.fb.add_giveaway_participant(giveaway["id"], interaction.user.id)
+        await interaction.followup.send(f"{interaction.user.mention} you joined the giveaway, good luck!", ephemeral=True)
+        await self.increase_gaw_embed_participants(giveaway)
 
 
 async def setup(bot: CObot):
