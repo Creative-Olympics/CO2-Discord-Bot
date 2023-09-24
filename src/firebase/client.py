@@ -12,13 +12,10 @@ from src.modules.giveaways.types import GiveawayData, RawGiveawayData
 class FirebaseDB:
     "Firebase client class to access the database"
 
-    def __init__(self, filename: str, realtime_url: str, auth_uuid: str):
+    def __init__(self, filename: str, realtime_url: str):
         cred = credentials.Certificate(filename)
         self.app = firebase_admin.initialize_app(cred, {
             'databaseURL': realtime_url,
-            # 'databaseAuthVariableOverride': {
-            #     'uid': auth_uuid
-            # }
         })
         self.cache = FirebaseCacheControler()
         self.log = logging.getLogger("cobot")
