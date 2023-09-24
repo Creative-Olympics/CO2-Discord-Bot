@@ -178,7 +178,7 @@ class GiveawaysCog(commands.Cog):
             return None
         return message
 
-    async def increase_gaw_embed_participants(self, data: GiveawayData):
+    async def increase_gaw_embed_participants(self, data: GiveawayData, participants_count: Optional[int]=None):
         "Fetch the Discord message for a giveaway, parse it and increment the participants count"
         message = await self.fetch_gaw_message(data)
         if message is None:
@@ -187,7 +187,10 @@ class GiveawaysCog(commands.Cog):
         if embed.fields[0].value is None:
             return
         field_value = embed.fields[0].value.split('/')
-        field_value[0] = str(int(field_value[0]) + 1)
+        if participants_count:
+            field_value[0] = str(participants_count)
+        else:
+            field_value[0] = str(int(field_value[0]) + 1)
         embed.set_field_at(0, name="Participants", value="/".join(field_value))
         await message.edit(embed=embed)
 
@@ -198,7 +201,12 @@ class GiveawaysCog(commands.Cog):
             return
         await self.bot.fb.add_giveaway_participant(giveaway["id"], interaction.user.id)
         await interaction.followup.send(f"{interaction.user.mention} you joined the giveaway, good luck!", ephemeral=True)
-        await self.increase_gaw_embed_participants(giveaway)
+        if self.bot.fb.cache.are_participants_sync(giveaway["id"]) and (
+                participants := self.bot.fb.cache.get_participants(giveaway["id"])):
+            participants_count = len(participants)
+        else:
+            participants_count = None
+        await self.increase_gaw_embed_participants(giveaway, participants_count=participants_count)
 
     async def close_giveaway(self, data: GiveawayData):
         "Close a giveaway and pick the winners"
