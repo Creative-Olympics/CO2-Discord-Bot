@@ -60,7 +60,8 @@ class GiveawaysCog(commands.Cog):
         docs = self.bot.fb.get_giveaways() if include_stopped else self.bot.fb.get_active_giveaways()
         async for gaw in docs:
             name = gaw["name"]
-            text += f"- **{name}**  -  "
+            message_url = f"https://discord.com/channels/{gaw['guild']}/{gaw['channel']}/{gaw['message']}"
+            text += f"- **[{name}]({message_url})**  -  "
             if participants := await self.bot.fb.get_giveaways_participants(gaw["id"]):
                 participants_count = len(participants)
                 if participants_count == 1:
