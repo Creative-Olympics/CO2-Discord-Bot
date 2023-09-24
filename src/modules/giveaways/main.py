@@ -3,7 +3,8 @@ from typing import Optional
 from uuid import uuid4
 
 import discord
-from discord.ext import commands
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from discord.ext import commands, tasks
 
 from src.cobot import CObot, COInteraction
 from src.custom_args import ColorOption, DurationOption
@@ -17,6 +18,17 @@ class GiveawaysCog(commands.Cog):
     def __init__(self, bot: CObot):
         self.bot = bot
         self.embed_color = 0x9933ff
+        self.scheduler = AsyncIOScheduler()
+
+    async def cog_load(self):
+        """Start the scheduler on cog load"""
+        self.scheduler.start()
+        self.schedule_giveaways.start() # pylint: disable=no-member
+
+    async def cog_unload(self):
+        """Stop the scheduler on cog unload"""
+        self.scheduler.shutdown()
+        self.schedule_giveaways.stop() # pylint: disable=no-member
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction: discord.Interaction):
@@ -37,6 +49,27 @@ class GiveawaysCog(commands.Cog):
         if gaw is None or gaw["ended"] or gaw["ends_at"] < discord.utils.utcnow():
             return # giveaway not found or ended
         await self.register_new_participant(interaction, gaw)
+
+    @tasks.loop(minutes=5)
+    async def schedule_giveaways(self):
+        "Check for expired giveaways and schedule their closing"
+        now = discord.utils.utcnow()
+        date_treshold = now + timedelta(minutes=5)
+        async for giveaway in self.bot.fb.get_active_giveaways():
+            if giveaway["ends_at"] < date_treshold:
+                self.bot.log.debug(f"[giveaways] Scheduling closing of giveaway {giveaway['id']}")
+                run_date = max(giveaway["ends_at"], now)
+                self.scheduler.add_job(self.close_giveaway, "date", run_date=run_date, args=[giveaway])
+
+    @schedule_giveaways.before_loop
+    async def on_schedule_giveaways_before(self):
+        "Wait for the bot to be ready before starting the scheduler"
+        await self.bot.wait_until_ready()
+
+    @schedule_giveaways.error
+    async def on_schedule_giveaways_error(self, error: BaseException):
+        "Log errors from the scheduler"
+        self.bot.dispatch("error", error)
 
     group = discord.app_commands.Group(
         name="giveaways",
@@ -166,6 +199,20 @@ class GiveawaysCog(commands.Cog):
         await self.bot.fb.add_giveaway_participant(giveaway["id"], interaction.user.id)
         await interaction.followup.send(f"{interaction.user.mention} you joined the giveaway, good luck!", ephemeral=True)
         await self.increase_gaw_embed_participants(giveaway)
+
+    async def close_giveaway(self, data: GiveawayData):
+        "Close a giveaway and pick the winners"
+        if data["ended"]:
+            return
+        self.bot.log.info(f"[giveaways] Closing giveaway {data['id']}")
+        message = await self.fetch_gaw_message(data)
+        if message is None:
+            return
+        embed = message.embeds[0]
+        embed.set_footer(text="Ended at")
+        await message.edit(embed=embed)
+        # await self.bot.fb.close_giveaway(data["id"])
+        # await self.pick_giveaway_winners(data)
 
 
 async def setup(bot: CObot):
