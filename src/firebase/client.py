@@ -93,6 +93,13 @@ class FirebaseDB:
         })
         self.cache.set_new_giveaway(data)
 
+    async def close_giveaway(self, giveaway_id: str):
+        "Mark a giveaway as ended"
+        self.log.info("[firebase] Closing giveaway %s", giveaway_id)
+        ref = db.reference(f"giveaways/{giveaway_id}")
+        ref.update({"ended": True})
+        self.cache.close_giveaway(giveaway_id)
+
     async def get_giveaways_participants(self, giveaway_id: str) -> Optional[list[int]]:
         "Get a list of participants for a giveaway"
         if self.cache.are_participants_sync(giveaway_id):
