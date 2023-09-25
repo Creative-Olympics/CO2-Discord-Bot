@@ -33,7 +33,7 @@ class CObot(commands.Bot):
         self.fb = FirebaseDB( # firebase client
             "firebaseServiceAccount.json",
             realtime_url=self.config["FIREBASE_REALTIME_DATABASE_URL"],
-            auth_uuid=self.config["FIREBASE_REALTIME_AUTH_UUID"]
+            # auth_uuid=self.config["FIREBASE_REALTIME_AUTH_UUID"]
         )
         # app commands
         self.tree.on_error = self.on_app_cmd_error
