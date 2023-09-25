@@ -92,13 +92,18 @@ class GiveawaysCog(commands.Cog):
             text += f"- **[{name}]({message_url})**  -  "
             if participants := await self.bot.fb.get_giveaways_participants(gaw["id"]):
                 participants_count = len(participants)
-                if participants_count == 1:
-                    text += "1 participant - "
-                else:
-                    text += f"{participants_count} participants - "
             else:
-                text += "no participant - "
-            text += f"{gaw['winners_count']} max winners - "
+                participants_count = 0
+            if max_entries := gaw.get("max_entries"):
+                text += f"{participants_count}/{max_entries} participants - "
+            else:
+                text += f"{participants_count} participants - "
+            max_winners_count = gaw['winners_count']
+            if gaw["ended"]:
+                winners_count = len(gaw["winners"])
+                text += f"{winners_count}/{max_winners_count} winners - "
+            else:
+                text += f"{max_winners_count} max winners - "
             end_date = discord.utils.format_dt(gaw["ends_at"], "R")
             if gaw["ends_at"] > now:
                 text += f"ends {end_date}\n"
