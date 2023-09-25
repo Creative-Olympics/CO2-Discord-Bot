@@ -1,3 +1,4 @@
+import random
 from datetime import timedelta
 from typing import Optional
 from uuid import uuid4
@@ -97,9 +98,10 @@ class GiveawaysCog(commands.Cog):
                     text += f"{participants_count} participants - "
             else:
                 text += "no participant - "
+            text += f"{gaw['winners_count']} max winners - "
             end_date = discord.utils.format_dt(gaw["ends_at"], "R")
             if gaw["ends_at"] > now:
-                text += f"ends in {end_date}\n"
+                text += f"ends {end_date}\n"
             else:
                 text += f"ended {end_date}\n"
         embed = discord.Embed(
@@ -216,11 +218,42 @@ class GiveawaysCog(commands.Cog):
         message = await self.fetch_gaw_message(data)
         if message is None:
             return
+        # edit initial embed
         embed = message.embeds[0]
         embed.set_footer(text="Ended at")
-        await message.edit(embed=embed)
-        # await self.bot.fb.close_giveaway(data["id"])
-        # await self.pick_giveaway_winners(data)
+        winners = await self.pick_giveaway_winners(data)
+        if len(winners) == 0:
+            embed.add_field(name="Winners", value="No one joined the giveaway...")
+        elif len(winners) < 35:
+            embed.add_field(name="Winners", value=", ".join(f"<@{winner}>" for winner in winners))
+        else:
+            embed.add_field(name="Winners", value=f"{len(winners)} winners picked")
+        await message.edit(embed=embed, view=None)
+        # send a new message mentionning winners
+        if len(winners) == 1:
+            await message.reply(
+                f"The winner of the **{data['name']}** giveaways has been picked!\nCongratulations to <@{winners[0]}>!",
+            )
+        elif len(winners) != 0:
+            winners_mentions = " ".join(f"<@{winner}>" for winner in winners)
+            await message.reply(
+                f"The winners of the **{data['name']}** giveaways have been picked!\nCongratulations to {winners_mentions}!",
+            )
+        else:
+            await message.reply(
+                f"Unfortunately, no one joined the **{data['name']}** giveaways...\nBetter luck next time!",
+            )
+        # mark the giveaway as ended in the database
+        await self.bot.fb.close_giveaway(data["id"], winners)
+
+    async def pick_giveaway_winners(self, data: GiveawayData) -> list[int]:
+        "Fetch participants of a giveaway and randomly pick winners"
+        participants = await self.bot.fb.get_giveaways_participants(data["id"])
+        if not participants:
+            return []
+        winners_count = min(data["winners_count"], len(participants))
+        return random.sample(participants, winners_count)
+
 
 
 async def setup(bot: CObot):

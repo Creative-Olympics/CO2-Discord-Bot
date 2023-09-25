@@ -54,7 +54,7 @@ class FirebaseCacheControler:
 
     def add_participant(self, giveaway_id: str, participant: int):
         "Add a participant to a giveaway, if the full list is already cached"
-        if participants := self.participants_cache.get(giveaway_id):
+        if (participants := self.participants_cache.get(giveaway_id)) is not None:
             participants.append(participant)
 
     def set_giveaways(self, giveaways: list[GiveawayData]):
@@ -77,7 +77,8 @@ class FirebaseCacheControler:
         "Set an existing giveaway"
         self.giveaways_cache[giveaway["id"]] = giveaway
 
-    def close_giveaway(self, giveaway_id: str):
+    def close_giveaway(self, giveaway_id: str, winners: list[int]):
         "Close a giveaway"
         if giveaway_id in self.giveaways_cache:
             self.giveaways_cache[giveaway_id]["ended"] = True
+            self.giveaways_cache[giveaway_id]["winners"] = winners
