@@ -93,12 +93,15 @@ class FirebaseDB:
         })
         self.cache.set_new_giveaway(data)
 
-    async def close_giveaway(self, giveaway_id: str):
+    async def close_giveaway(self, giveaway_id: str, winners: list[int]):
         "Mark a giveaway as ended"
-        self.log.info("[firebase] Closing giveaway %s", giveaway_id)
+        self.log.info("[firebase] Marking giveaway %s as ended", giveaway_id)
         ref = db.reference(f"giveaways/{giveaway_id}")
-        ref.update({"ended": True})
-        self.cache.close_giveaway(giveaway_id)
+        ref.update({
+            "ended": True,
+            "winners": winners
+        })
+        self.cache.close_giveaway(giveaway_id, winners)
 
     async def get_giveaways_participants(self, giveaway_id: str) -> Optional[list[int]]:
         "Get a list of participants for a giveaway"
@@ -106,10 +109,10 @@ class FirebaseDB:
             return self.cache.get_participants(giveaway_id)
         self.log.debug("[firebase] Fetching participants for giveaway %s", giveaway_id)
         ref = db.reference(f"participants/{giveaway_id}")
-        snapshot: Optional[dict[int, Literal[True]]] = ref.get() # type: ignore
+        snapshot: Optional[dict[str, Literal[True]]] = ref.get() # type: ignore
         if snapshot is None:
             return None
-        participants = list(snapshot.keys())
+        participants = [int(user_id) for user_id in snapshot.keys()]
         self.cache.set_participants(giveaway_id, participants)
         return participants
 
