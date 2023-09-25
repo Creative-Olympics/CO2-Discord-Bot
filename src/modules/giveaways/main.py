@@ -260,7 +260,6 @@ class GiveawaysCog(commands.Cog):
         return random.sample(participants, winners_count)
 
 
-
 async def setup(bot: CObot):
     "Load the cog"
     await bot.add_cog(GiveawaysCog(bot))
