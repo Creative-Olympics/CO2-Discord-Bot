@@ -108,7 +108,7 @@ class FirebaseDB:
         if self.cache.are_participants_sync(giveaway_id):
             return self.cache.get_participants(giveaway_id)
         self.log.debug("[firebase] Fetching participants for giveaway %s", giveaway_id)
-        ref = db.reference(f"participants/{giveaway_id}")
+        ref = db.reference(f"giveaways_participants/{giveaway_id}")
         snapshot: Optional[dict[str, Literal[True]]] = ref.get() # type: ignore
         if snapshot is None:
             return None
@@ -122,13 +122,13 @@ class FirebaseDB:
             if participants := self.cache.get_participants(giveaway_id):
                 return user_id in participants
         self.log.debug("[firebase] Fetching participant %s for giveaway %s", user_id, giveaway_id)
-        ref = db.reference(f"participants/{giveaway_id}/{user_id}")
+        ref = db.reference(f"giveaways_participants/{giveaway_id}/{user_id}")
         snapshot: Optional[Literal[True]] = ref.get() # type: ignore
         return snapshot is not None
 
     async def add_giveaway_participant(self, giveaway_id: str, user_id: int):
         "Add a participant to a giveaway"
         self.log.debug("[firebase] Adding participant %s to giveaway %s", user_id, giveaway_id)
-        ref = db.reference(f"participants/{giveaway_id}/{user_id}")
+        ref = db.reference(f"giveaways_participants/{giveaway_id}/{user_id}")
         ref.set(True)
         self.cache.add_participant(giveaway_id, user_id)
