@@ -103,6 +103,18 @@ class FirebaseDB:
         })
         self.cache.close_giveaway(giveaway_id, winners)
 
+    async def delete_giveaway(self, giveaway_id: str):
+        "Delete a giveaway document and its participants"
+        self.log.info("[firebase] Deleting giveaway %s", giveaway_id)
+        # remove giveaway entry
+        ref = db.reference(f"giveaways/{giveaway_id}")
+        ref.delete()
+        # remove participants list
+        ref = db.reference(f"giveaways_participants/{giveaway_id}")
+        ref.delete()
+        # update cache
+        self.cache.delete_giveaway(giveaway_id)
+
     async def get_giveaways_participants(self, giveaway_id: str) -> Optional[list[int]]:
         "Get a list of participants for a giveaway"
         if self.cache.are_participants_sync(giveaway_id):
