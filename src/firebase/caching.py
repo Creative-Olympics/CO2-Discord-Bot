@@ -82,3 +82,11 @@ class FirebaseCacheControler:
         if giveaway_id in self.giveaways_cache:
             self.giveaways_cache[giveaway_id]["ended"] = True
             self.giveaways_cache[giveaway_id]["winners"] = winners
+
+    def delete_giveaway(self, giveaway_id: str):
+        "Delete a giveaway"
+        if giveaway_id in self.giveaways_cache:
+            del self.giveaways_cache[giveaway_id]
+        if giveaway_id in self.participants_cache:
+            del self.participants_cache[giveaway_id]
+            self.__synced_participants_giveaways.remove(giveaway_id)
