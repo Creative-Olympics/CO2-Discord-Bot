@@ -9,6 +9,7 @@ from discord.app_commands import Choice
 from discord.ext import commands, tasks
 
 from src.cobot import CObot, COInteraction
+from src.confirm_view import ConfirmView
 from src.custom_args import ColorOption, DurationOption
 from src.modules.giveaways.types import GiveawayData, GiveawayToSendData
 from src.modules.giveaways.views import GiveawayView
@@ -167,9 +168,19 @@ class GiveawaysCog(commands.Cog):
             await interaction.followup.send("You can only delete giveaways in your own server!")
             return
         if not gaw["ended"]:
-            await interaction.followup.send("This giveaway is still ongoing! Are you sure you want to delete it?")
-            # TODO: add confirmation view
-            return
+            confirm_view = ConfirmView(
+                validation=lambda inter: inter.user.id == interaction.user.id,
+                send_confirmation=False
+            )
+            await interaction.followup.send("This giveaway is still ongoing! Are you sure you want to delete it?",
+                                            view=confirm_view)
+            await confirm_view.wait()
+            if confirm_view.value is None:
+                await confirm_view.disable(interaction)
+                return
+            if not confirm_view.value:
+                await confirm_view.disable(interaction)
+                return
         await self.bot.fb.delete_giveaway(giveaway)
         await interaction.followup.send("Giveaway deleted!")
 
