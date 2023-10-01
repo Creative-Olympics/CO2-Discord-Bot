@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from discord.app_commands import Choice
 from discord.ext import commands, tasks
 
 from src.cobot import CObot, COInteraction
@@ -151,6 +152,40 @@ class GiveawaysCog(commands.Cog):
             "winners": [] # gonna be deleted anyway when saved by Firebase
         })
         await interaction.followup.send(f"Giveaway created at {message.jump_url} !")
+
+    @group.command(name="delete")
+    async def gw_delete(self, interaction: COInteraction, giveaway: str):
+        "Delete a giveaway"
+        if interaction.guild is None:
+            return
+        await interaction.response.defer()
+        gaw = await self.bot.fb.get_giveaway(giveaway)
+        if gaw is None:
+            await interaction.followup.send("Giveaway not found!")
+            return
+        if gaw["guild"] != interaction.guild.id:
+            await interaction.followup.send("You can only delete giveaways in your own server!")
+            return
+        if not gaw["ended"]:
+            await interaction.followup.send("This giveaway is still ongoing! Are you sure you want to delete it?")
+            # TODO: add confirmation view
+            return
+        await self.bot.fb.delete_giveaway(giveaway)
+        await interaction.followup.send("Giveaway deleted!")
+
+    @gw_delete.autocomplete("giveaway")
+    async def gw_delete_autocomplete(self, interaction: COInteraction, current: str):
+        "Autocomplete for the giveaway argument of the delete command"
+        if interaction.guild_id is None:
+            return []
+        current = current.lower()
+        choices: list[tuple[bool, str, Choice[str]]] = []
+        async for gaw in self.bot.fb.get_giveaways():
+            if gaw["guild"] == interaction.guild_id and current in gaw["name"].lower():
+                priority = not gaw["name"].lower().startswith(current)
+                choice = Choice(name=gaw["name"], value=gaw["id"])
+                choices.append((priority, gaw["name"], choice))
+        return [choice for _, _, choice in sorted(choices, key=lambda x: x[0:2])]
 
     async def create_active_gaw_embed(self, data: GiveawayToSendData, participants_count: int=0):
         "Create a Discord embed for an active giveaway"
