@@ -156,7 +156,7 @@ class GiveawaysCog(commands.Cog):
 
     @group.command(name="delete")
     async def gw_delete(self, interaction: COInteraction, giveaway: str):
-        "Delete a giveaway"
+        "Permanently delete a giveaway from the database"
         if interaction.guild is None:
             return
         await interaction.response.defer()
