@@ -1,3 +1,4 @@
+import logging
 import random
 from datetime import timedelta
 from typing import Optional
@@ -22,6 +23,7 @@ class GiveawaysCog(commands.Cog):
         self.bot = bot
         self.embed_color = 0x9933ff
         self.scheduler = AsyncIOScheduler()
+        self.log = logging.getLogger("cobot.giveaways")
 
     async def cog_load(self):
         """Start the scheduler on cog load"""
@@ -60,7 +62,7 @@ class GiveawaysCog(commands.Cog):
         date_treshold = now + timedelta(minutes=5)
         async for giveaway in self.bot.fb.get_active_giveaways():
             if giveaway["ends_at"] < date_treshold:
-                self.bot.log.debug(f"[giveaways] Scheduling closing of giveaway {giveaway['id']}")
+                self.log.debug("Scheduling closing of giveaway %s", giveaway['id'])
                 run_date = max(giveaway["ends_at"], now)
                 self.scheduler.add_job(self.close_giveaway, "date", run_date=run_date, args=[giveaway])
 
@@ -265,7 +267,7 @@ class GiveawaysCog(commands.Cog):
         "Close a giveaway and pick the winners"
         if data["ended"]:
             return
-        self.bot.log.info(f"[giveaways] Closing giveaway {data['id']}")
+        self.log.info("Closing giveaway %s", data['id'])
         message = await self.fetch_gaw_message(data)
         if message is None:
             return

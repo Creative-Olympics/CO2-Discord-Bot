@@ -1,3 +1,4 @@
+import logging
 import sys
 from typing import Optional, Union
 
@@ -6,7 +7,6 @@ from discord.ext import commands
 
 from src.firebase.client import FirebaseDB
 
-from .boot_utils import setup_logger
 from .config import Config
 
 
@@ -28,7 +28,7 @@ class CObot(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned, owner_ids=owner_ids, status=status,
                          allowed_mentions=allowed_mentions, intents=intents, enable_debug_events=True)
         self.beta = beta # if the bot is in beta mode
-        self.log = setup_logger() # logs module
+        self.log = logging.getLogger("cobot")
         self.zws = "\u200B"  # here's a zero width space
         self.fb = FirebaseDB( # firebase client
             "firebaseServiceAccount.json",
@@ -47,6 +47,7 @@ class CObot(commands.Bot):
             self.dispatch("error", error, f"While handling event `{event_method}`")
 
     async def on_app_cmd_error(self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        "Dispatch a custom 'interaction_error' when an app command raises an error"
         self.dispatch("interaction_error", interaction, error)
 
     async def fetch_app_commands(self):

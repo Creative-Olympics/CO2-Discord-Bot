@@ -15,30 +15,32 @@ def setup_start_parser():
     "Create a parser for the command-line interface"
     parser = argparse.ArgumentParser()
     parser.add_argument('--beta', '-b', help="Use the beta bot instead of the release", action="store_true")
-
     return parser
 
 def setup_logger():
     """Setup the logger used by the bot
     It should use both console and a debug file"""
-    log = logging.getLogger("cobot")
-    log_format = logging.Formatter("%(asctime)s %(levelname)s: %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
-
-    # file logging
-    file_handler = RotatingFileHandler("logs/debug.log", maxBytes=int(1e6), backupCount=2, delay=True)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(log_format)
-
     # console logging
     stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(logging.DEBUG)
+    # file logging
+    file_handler = RotatingFileHandler("logs/debug.log", maxBytes=int(1e6), backupCount=2, delay=True)
+
+    log_format = logging.Formatter(
+        "[{asctime}] {levelname:<7}: [{name}] {message}",
+        datefmt="%Y-%m-%d %H:%M:%S", style='{'
+    )
+
+    file_handler.setFormatter(log_format)
     stream_handler.setFormatter(log_format)
 
-    log.addHandler(file_handler)
-    log.addHandler(stream_handler)
+    # add handlers to root logger
+    root_logger = logging.getLogger()
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(stream_handler)
+    root_logger.setLevel(logging.INFO)
 
-    log.setLevel(logging.DEBUG)
-    return log
+    # set cobot logger to debug
+    logging.getLogger("cobot").setLevel(logging.DEBUG)
 
 async def load_cogs(bot: "CObot"):
     "Load the bot modules"
