@@ -1,7 +1,9 @@
+import logging
 import os
 import sys
 import traceback
 from typing import Optional, Union
+
 import discord
 from discord.ext import commands, tasks
 
@@ -28,6 +30,7 @@ class ErrorsCog(commands.Cog):
         self.bot = bot
         # map of user ID and number of cooldown errors recently hit
         self.cooldown_pool: dict[int, int] = {}
+        self.log = logging.getLogger("cobot.errors")
 
     async def cog_load(self):
         # pylint: disable=no-member
@@ -123,7 +126,7 @@ class ErrorsCog(commands.Cog):
             return
 
         # All other Errors not returned come here... And we can just print the default TraceBack.
-        self.bot.log.warning(f'Ignoring exception in command {ctx.message.content}:')
+        self.log.warning('Ignoring exception in command %s:', ctx.message.content)
         await self.on_error(error,ctx)
 
     @commands.Cog.listener()
@@ -157,7 +160,7 @@ class ErrorsCog(commands.Cog):
         elif interaction.type == discord.InteractionType.autocomplete:
             await self.on_error(error, f"Command autocompletion | {guild}")
         else:
-            self.bot.log.warn(f"Unhandled interaction error type: {interaction.type}")
+            self.log.warning("Unhandled interaction error type: %s", interaction.type)
             await self.on_error(error, None)
         await send("Oops, an error occured while executing this command :confused:", ephemeral=True)
 
@@ -174,7 +177,7 @@ class ErrorsCog(commands.Cog):
         try:
             # if this is only an interaction too slow, don't report in bug channel
             if isinstance(error, discord.NotFound) and error.text == "Unknown interaction":
-                self.bot.log.warning(f"[on_error] {error}", exc_info=exc_info)
+                self.log.warning(error, exc_info=exc_info)
                 return
             # get traceback info
             if isinstance(ctx, discord.Message):
@@ -197,9 +200,9 @@ class ErrorsCog(commands.Cog):
                 channel_name = get_channel_name(ctx)
                 context = f"{ctx.guild.name} | {channel_name}"
             await self.send_error_msg_autoformat(context, trace)
-            self.bot.log.warning(f"[on_error] {error}", exc_info=exc_info)
-        except Exception as err:
-            self.bot.log.error(f"[on_error] {err}", exc_info=sys.exc_info())
+            self.log.warning(error, exc_info=exc_info)
+        except Exception as err: # pylint: disable=broad-except
+            self.log.error(err, exc_info=sys.exc_info())
 
     async def send_error_msg_autoformat(self, context: str, python_message: str):
         """Envoie un message dans le salon d'erreur"""
@@ -216,7 +219,7 @@ class ErrorsCog(commands.Cog):
         """Envoie un message dans le salon d'erreur"""
         errors_channel: discord.TextChannel = self.bot.get_channel(self.bot.config["ERRORS_CHANNEL_ID"]) # type: ignore
         if errors_channel is None:
-            self.bot.log.critical("[on_error] Cannot find errors channel")
+            self.log.critical("Cannot find errors channel")
             return False
         if len(msg) > 2000:
             if msg.endswith("```"):

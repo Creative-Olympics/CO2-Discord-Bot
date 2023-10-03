@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import sys
 import textwrap
@@ -32,6 +33,7 @@ class AdminCog(commands.Cog):
     def __init__(self, bot: CObot):
         self.bot = bot
         self._last_result: Any = None
+        self.log = logging.getLogger("cobot.admin")
 
     group = discord.app_commands.Group(
         name="admin",
@@ -81,7 +83,7 @@ class AdminCog(commands.Cog):
         "Restart the bot"
         await interaction.response.send_message(content="Reboot in progress...")
         await self.cleanup_workspace()
-        self.bot.log.info("Restarting the process")
+        self.log.info("Restarting the process")
         os.execl(sys.executable, sys.executable, *sys.argv)
 
     @group.command(name="shutdown")
@@ -92,7 +94,7 @@ class AdminCog(commands.Cog):
         await self.cleanup_workspace()
         await interaction.edit_original_response(content="Shutting down...")
         await self.bot.change_presence(status=discord.Status('offline'))
-        self.bot.log.info("Shutting down the process, requested by %s", interaction.user)
+        self.log.info("Shutting down the process, requested by %s", interaction.user)
         await self.bot.close()
 
     @group.command(name="sync-commands")
@@ -102,7 +104,7 @@ class AdminCog(commands.Cog):
         await interaction.response.defer()
         cmds = await self.bot.tree.sync()
         txt = f"{len(cmds)} global commands synced"
-        self.bot.log.info(txt)
+        self.log.info(txt)
         await interaction.followup.send(txt + '!')
 
     @group.command(name="change-activity")
@@ -140,19 +142,19 @@ class AdminCog(commands.Cog):
         stdout = io.StringIO()
         try:
             to_compile = f'async def func():\n{textwrap.indent(body, "  ")}'
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             self.bot.dispatch("error", err, ctx)
             return
         try:
             exec(to_compile, env) # pylint: disable=exec-used
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             return await ctx.reply(f'```py\n{err.__class__.__name__}: {err}\n```')
 
         func = env['func']
         try:
             with redirect_stdout(stdout):
                 ret = await func()
-        except Exception as err:
+        except Exception as err: # pylint: disable=broad-except
             value = stdout.getvalue()
             await ctx.reply(f'```py\n{value}{traceback.format_exc()[:1990]}\n```')
         else:

@@ -22,7 +22,7 @@ check_libs()
 import discord
 import asyncio
 
-from src.boot_utils import load_cogs, setup_start_parser
+from src.boot_utils import load_cogs, setup_logger, setup_start_parser
 from src.cobot import CObot
 
 
@@ -32,6 +32,8 @@ async def main():
     args = parser.parse_args()
     if not isinstance(args.beta, bool):
         raise TypeError("Beta argument must be a boolean")
+
+    setup_logger()
 
     client = CObot(status=discord.Status.online, beta=args.beta)
     client.log.info("Starting bot")

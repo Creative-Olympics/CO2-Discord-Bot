@@ -18,7 +18,7 @@ class FirebaseDB:
             'databaseURL': realtime_url,
         })
         self.cache = FirebaseCacheControler()
-        self.log = logging.getLogger("cobot")
+        self.log = logging.getLogger("cobot.firebase")
 
     async def get_giveaways(self) -> AsyncGenerator[GiveawayData, None]:
         "Get a generator of giveaway documents"
@@ -26,7 +26,7 @@ class FirebaseDB:
             for gaw in self.cache.get_giveaways():
                 yield gaw
             return
-        self.log.debug("[firebase] Fetching giveaways")
+        self.log.debug("Fetching giveaways")
         ref = db.reference("giveaways")
         snapshot: dict[str, RawGiveawayData] = ref.get() # type: ignore
         parsed_giveaways: list[GiveawayData] = [
@@ -49,7 +49,7 @@ class FirebaseDB:
             for gaw in self.cache.get_active_giveaways():
                 yield gaw
             return
-        self.log.debug("[firebase] Fetching active giveaways")
+        self.log.debug("Fetching active giveaways")
         ref = db.reference("giveaways")
         snapshot: dict[str, RawGiveawayData] = ref.order_by_child("ended").equal_to(False).get() # type: ignore
         parsed_giveaways: list[GiveawayData] = [
@@ -69,7 +69,7 @@ class FirebaseDB:
         "Get a giveaway document"
         if gaw := self.cache.get_giveaway(giveaway_id):
             return gaw
-        self.log.debug("[firebase] Fetching giveaway %s", giveaway_id)
+        self.log.debug("Fetching giveaway %s", giveaway_id)
         ref = db.reference(f"giveaways/{giveaway_id}")
         snapshot: Optional[RawGiveawayData] = ref.get() # type: ignore
         if snapshot is None:
@@ -85,7 +85,7 @@ class FirebaseDB:
 
     async def create_giveaway(self, data: GiveawayData):
         "Create a giveaway document"
-        self.log.info("[firebase] Creating new giveaway %s", data["id"])
+        self.log.info("Creating new giveaway %s", data["id"])
         ref = db.reference("giveaways")
         ref.child(data["id"]).set({
             **data,
@@ -95,7 +95,7 @@ class FirebaseDB:
 
     async def close_giveaway(self, giveaway_id: str, winners: list[int]):
         "Mark a giveaway as ended"
-        self.log.info("[firebase] Marking giveaway %s as ended", giveaway_id)
+        self.log.info("Marking giveaway %s as ended", giveaway_id)
         ref = db.reference(f"giveaways/{giveaway_id}")
         ref.update({
             "ended": True,
@@ -105,7 +105,7 @@ class FirebaseDB:
 
     async def delete_giveaway(self, giveaway_id: str):
         "Delete a giveaway document and its participants"
-        self.log.info("[firebase] Deleting giveaway %s", giveaway_id)
+        self.log.info("Deleting giveaway %s", giveaway_id)
         # remove giveaway entry
         ref = db.reference(f"giveaways/{giveaway_id}")
         ref.delete()
@@ -119,7 +119,7 @@ class FirebaseDB:
         "Get a list of participants for a giveaway"
         if self.cache.are_participants_sync(giveaway_id):
             return self.cache.get_participants(giveaway_id)
-        self.log.debug("[firebase] Fetching participants for giveaway %s", giveaway_id)
+        self.log.debug("Fetching participants for giveaway %s", giveaway_id)
         ref = db.reference(f"giveaways_participants/{giveaway_id}")
         snapshot: Optional[dict[str, Literal[True]]] = ref.get() # type: ignore
         if snapshot is None:
@@ -133,14 +133,14 @@ class FirebaseDB:
         if self.cache.are_participants_sync(giveaway_id):
             if participants := self.cache.get_participants(giveaway_id):
                 return user_id in participants
-        self.log.debug("[firebase] Fetching participant %s for giveaway %s", user_id, giveaway_id)
+        self.log.debug("Fetching participant %s for giveaway %s", user_id, giveaway_id)
         ref = db.reference(f"giveaways_participants/{giveaway_id}/{user_id}")
         snapshot: Optional[Literal[True]] = ref.get() # type: ignore
         return snapshot is not None
 
     async def add_giveaway_participant(self, giveaway_id: str, user_id: int):
         "Add a participant to a giveaway"
-        self.log.debug("[firebase] Adding participant %s to giveaway %s", user_id, giveaway_id)
+        self.log.debug("Adding participant %s to giveaway %s", user_id, giveaway_id)
         ref = db.reference(f"giveaways_participants/{giveaway_id}/{user_id}")
         ref.set(True)
         self.cache.add_participant(giveaway_id, user_id)
