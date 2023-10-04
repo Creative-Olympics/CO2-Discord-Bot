@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import discord
 from LRFutils import progress
 
+from src.utils.logging_formats import get_logging_formatter
+
 if TYPE_CHECKING:
     from .cobot import CObot
 
@@ -25,13 +27,11 @@ def setup_logger():
     # file logging
     file_handler = RotatingFileHandler("logs/debug.log", maxBytes=int(1e6), backupCount=2, delay=True)
 
-    log_format = logging.Formatter(
-        "[{asctime}] {levelname:<7}: [{name}] {message}",
-        datefmt="%Y-%m-%d %H:%M:%S", style='{'
-    )
-
-    file_handler.setFormatter(log_format)
-    stream_handler.setFormatter(log_format)
+    # add formatters to handlers
+    stream_supports_colors = discord.utils.stream_supports_colour(stream_handler.stream)
+    stream_handler.setFormatter(get_logging_formatter(stream_supports_colors))
+    file_supports_colors = discord.utils.stream_supports_colour(file_handler.stream)
+    file_handler.setFormatter(get_logging_formatter(file_supports_colors))
 
     # add handlers to root logger
     root_logger = logging.getLogger()
