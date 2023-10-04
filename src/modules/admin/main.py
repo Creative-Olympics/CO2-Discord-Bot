@@ -14,7 +14,7 @@ from discord.ext import commands
 from git import GitCommandError
 from git.repo import Repo
 
-from src.checks import is_bot_admin
+from src.utils.checks import is_bot_admin
 from src.cobot import CObot, COInteraction
 
 
