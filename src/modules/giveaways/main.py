@@ -10,8 +10,8 @@ from discord.app_commands import Choice
 from discord.ext import commands, tasks
 
 from src.cobot import CObot, COInteraction
-from src.confirm_view import ConfirmView
-from src.custom_args import ColorOption, DurationOption
+from src.utils.confirm_view import ConfirmView
+from src.utils.custom_args import ColorOption, DurationOption
 from src.modules.giveaways.types import GiveawayData, GiveawayToSendData
 from src.modules.giveaways.views import GiveawayView
 
