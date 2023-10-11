@@ -1,7 +1,7 @@
 import logging
 import random
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, Union
 from uuid import uuid4
 
 import discord
@@ -14,6 +14,9 @@ from src.utils.confirm_view import ConfirmView
 from src.utils.custom_args import ColorOption, DurationOption
 from src.modules.giveaways.types import GiveawayData, GiveawayToSendData
 from src.modules.giveaways.views import GiveawayView
+
+AcceptableChannel = (discord.TextChannel, discord.Thread, discord.StageChannel, discord.VoiceChannel)
+AcceptableChannelType = Union[discord.TextChannel, discord.Thread, discord.StageChannel, discord.VoiceChannel]
 
 
 class GiveawaysCog(commands.Cog):
@@ -124,17 +127,21 @@ class GiveawaysCog(commands.Cog):
 
     @group.command(name="create")
     async def gw_create(self, interaction: COInteraction, *, name: str, description: str,
-                        duration: DurationOption, channel: Optional[discord.TextChannel]=None,
+                        duration: DurationOption, channel: Optional[AcceptableChannelType]=None,
                         color: Optional[ColorOption]=None, max_entries: Optional[int]=None,
                         winners_count: int=1):
         "Create a giveaway"
         if interaction.guild is None:
             return
         target_channel = channel or interaction.channel
-        if not isinstance(target_channel, discord.TextChannel):
+        if not isinstance(target_channel, AcceptableChannel):
             await interaction.response.send_message("Giveaways can only be sent in text channels!")
             return
         if target_channel is None:
+            return
+        bot_perms = target_channel.permissions_for(interaction.guild.me)
+        if not (bot_perms.send_messages and bot_perms.embed_links):
+            await interaction.response.send_message("I need the permission to send messages and embed links in this channel!")
             return
         await interaction.response.defer()
         ends_date = discord.utils.utcnow() + timedelta(seconds=duration)
@@ -219,7 +226,7 @@ class GiveawaysCog(commands.Cog):
         embed.set_footer(text="Ends at")
         return embed
 
-    async def send_gaw(self, channel: discord.TextChannel, data: GiveawayToSendData):
+    async def send_gaw(self, channel: AcceptableChannelType, data: GiveawayToSendData):
         "Send a giveaway message in a given channel"
         embed = await self.create_active_gaw_embed(data)
         view = GiveawayView(self.bot, data, "Join the giveaway!")
@@ -229,7 +236,7 @@ class GiveawaysCog(commands.Cog):
     async def fetch_gaw_message(self, data: GiveawayData):
         "Fetch the Discord message for a giveaway"
         channel = self.bot.get_channel(data["channel"])
-        if not isinstance(channel, discord.TextChannel):
+        if not isinstance(channel, AcceptableChannel):
             return None
         try:
             message = await channel.fetch_message(data["message"])
