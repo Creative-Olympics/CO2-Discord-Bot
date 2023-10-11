@@ -113,6 +113,8 @@ class GiveawaysCog(commands.Cog):
                 text += f"ends {end_date}\n"
             else:
                 text += f"ended {end_date}\n"
+        if not text:
+            text = "No giveaways" if include_stopped else "No active giveaways"
         embed = discord.Embed(
             title=("List of all giveaways" if include_stopped else "List of active giveaways"),
             description=text,
@@ -136,6 +138,8 @@ class GiveawaysCog(commands.Cog):
             return
         await interaction.response.defer()
         ends_date = discord.utils.utcnow() + timedelta(seconds=duration)
+        if max_entries is not None and winners_count > max_entries:
+            winners_count = max_entries
         data: GiveawayToSendData = {
             "id": uuid4().hex,
             "guild": interaction.guild.id,
@@ -254,6 +258,15 @@ class GiveawaysCog(commands.Cog):
         if await self.bot.fb.check_giveaway_participant(giveaway["id"], interaction.user.id):
             await interaction.followup.send(f"{interaction.user.mention} you already joined the giveaway!", ephemeral=True)
             return
+        if max_entries := giveaway.get("max_entries"):
+            participants = await self.bot.fb.get_giveaways_participants(giveaway["id"])
+            if participants is not None and len(participants) >= max_entries:
+                await interaction.followup.send(
+                    f"{interaction.user.mention} the limit of participants for this giveaway has been reached! \
+Maybe you'll be luckier next time...",
+                    ephemeral=True
+                )
+                return
         await self.bot.fb.add_giveaway_participant(giveaway["id"], interaction.user.id)
         await interaction.followup.send(f"{interaction.user.mention} you joined the giveaway, good luck!", ephemeral=True)
         if self.bot.fb.cache.are_participants_sync(giveaway["id"]) and (
