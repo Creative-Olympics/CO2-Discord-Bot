@@ -77,6 +77,11 @@ class FirebaseCacheControler:
         "Set an existing giveaway"
         self.giveaways_cache[giveaway["id"]] = giveaway
 
+    def edit_giveaway(self, giveaway_id: str, partial_giveaway: GiveawayData):
+        "Edit a giveaway"
+        if giveaway_id in self.giveaways_cache:
+            self.giveaways_cache[giveaway_id].update(partial_giveaway)
+
     def close_giveaway(self, giveaway_id: str, winners: list[int]):
         "Close a giveaway"
         if giveaway_id in self.giveaways_cache:

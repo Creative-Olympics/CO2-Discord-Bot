@@ -1,19 +1,19 @@
 import logging
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 from uuid import uuid4
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from discord.app_commands import Choice
+from discord.app_commands import Choice, Range
 from discord.ext import commands, tasks
 
 from src.cobot import CObot, COInteraction
-from src.utils.confirm_view import ConfirmView
-from src.utils.custom_args import ColorOption, DurationOption
 from src.modules.giveaways.types import GiveawayData, GiveawayToSendData
 from src.modules.giveaways.views import GiveawayView
+from src.utils.confirm_view import ConfirmView
+from src.utils.custom_args import ColorOption, DateOption, DurationOption
 
 AcceptableChannel = (discord.TextChannel, discord.Thread, discord.StageChannel, discord.VoiceChannel)
 AcceptableChannelType = Union[discord.TextChannel, discord.Thread, discord.StageChannel, discord.VoiceChannel]
@@ -126,7 +126,7 @@ class GiveawaysCog(commands.Cog):
         await interaction.followup.send(embed=embed)
 
     @group.command(name="create")
-    async def gw_create(self, interaction: COInteraction, *, name: str, description: str,
+    async def gw_create(self, interaction: COInteraction, *, name: Range[str, 2, 30], description: Range[str, 2, 256],
                         duration: DurationOption, channel: Optional[AcceptableChannelType]=None,
                         color: Optional[ColorOption]=None, max_entries: Optional[int]=None,
                         winners_count: int=1):
@@ -200,6 +200,59 @@ class GiveawaysCog(commands.Cog):
     @gw_delete.autocomplete("giveaway")
     async def gw_delete_autocomplete(self, interaction: COInteraction, current: str):
         "Autocomplete for the giveaway argument of the delete command"
+        if interaction.guild_id is None:
+            return []
+        current = current.lower()
+        choices: list[tuple[bool, str, Choice[str]]] = []
+        async for gaw in self.bot.fb.get_giveaways():
+            if gaw["guild"] == interaction.guild_id and current in gaw["name"].lower():
+                priority = not gaw["name"].lower().startswith(current)
+                choice = Choice(name=gaw["name"], value=gaw["id"])
+                choices.append((priority, gaw["name"], choice))
+        return [choice for _, _, choice in sorted(choices, key=lambda x: x[0:2])]
+
+    @group.command(name="edit")
+    async def gw_edit(self, interaction: COInteraction, giveaway: str, *,
+                      name: Optional[ Range[str, 2, 30]]=None, description: Optional[ Range[str, 2, 256]]=None,
+                      utc_end_date: Optional[DateOption]=None, color: Optional[ColorOption]=None,
+                      max_entries: Optional[int]=None, winners_count: Optional[int]=None):
+        "Edit an existing giveaway"
+        if interaction.guild is None:
+            return
+        if all(arg is None for arg in (name, description, utc_end_date, color, max_entries, winners_count)):
+            await interaction.response.send_message("You must provide at least one argument to edit!")
+            return
+        if utc_end_date is not None and utc_end_date < discord.utils.utcnow():
+            await interaction.response.send_message("The end date must be in the future!")
+            return
+        await interaction.response.defer()
+        gaw = await self.bot.fb.get_giveaway(giveaway)
+        if gaw is None:
+            await interaction.followup.send("Giveaway not found!")
+            return
+        # run basic tests
+        if gaw["guild"] != interaction.guild.id:
+            await interaction.followup.send("You can only delete giveaways in your own server!")
+            return
+        if gaw["ended"]:
+            await interaction.followup.send("You can't edit an ended giveaway!")
+            return
+        # edit original data
+        gaw = await self._merge_giveaways_data(gaw, name, description, utc_end_date, color, max_entries, winners_count)
+        # edit embed
+        message = await self.fetch_gaw_message(gaw)
+        if message is None:
+            await interaction.followup.send("Giveaway message not found!")
+            return
+        embed = await self.create_active_gaw_embed(gaw)
+        await message.edit(embed=embed)
+        # edit database
+        await self.bot.fb.edit_giveaway(giveaway, gaw)
+        await interaction.followup.send("Giveaway edited!")
+
+    @gw_edit.autocomplete("giveaway")
+    async def gw_edit_autocomplete(self, interaction: COInteraction, current: str):
+        "Autocomplete for the giveaway argument of the edit command"
         if interaction.guild_id is None:
             return []
         current = current.lower()
@@ -326,6 +379,25 @@ Maybe you'll be luckier next time...",
             return []
         winners_count = min(data["winners_count"], len(participants))
         return random.sample(participants, winners_count)
+
+    async def _merge_giveaways_data(self, original_data: GiveawayData,
+                                    name: Optional[str], description: Optional[str],
+                                    utc_end_date: Optional[datetime], color: Optional[discord.Colour],
+                                    max_entries: Optional[int], winners_count: Optional[int]) -> GiveawayData:
+        "Update a given giveaway data with new values"
+        if name is not None:
+            original_data["name"] = name
+        if description is not None:
+            original_data["description"] = description
+        if utc_end_date is not None:
+            original_data["ends_at"] = utc_end_date.astimezone(timezone.utc)
+        if color is not None:
+            original_data["color"] = color.value
+        if max_entries is not None:
+            original_data["max_entries"] = max_entries
+        if winners_count is not None:
+            original_data["winners_count"] = winners_count
+        return original_data
 
 
 

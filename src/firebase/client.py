@@ -115,6 +115,16 @@ class FirebaseDB:
         # update cache
         self.cache.delete_giveaway(giveaway_id)
 
+    async def edit_giveaway(self, giveaway_id: str, data: GiveawayData):
+        "Edit a giveaway document"
+        self.log.info("Editing giveaway %s", giveaway_id)
+        ref = db.reference(f"giveaways/{giveaway_id}")
+        ref.update({
+            **data,
+            "ends_at": data["ends_at"].isoformat()
+        })
+        self.cache.edit_giveaway(giveaway_id, data)
+
     async def get_giveaways_participants(self, giveaway_id: str) -> Optional[list[int]]:
         "Get a list of participants for a giveaway"
         if self.cache.are_participants_sync(giveaway_id):
