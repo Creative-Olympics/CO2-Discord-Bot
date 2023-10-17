@@ -69,3 +69,26 @@ class DurationTransformer(app_commands.Transformer):
         return round(duration)
 
 DurationOption = app_commands.Transform[int, DurationTransformer]
+
+# pylint: disable=abstract-method
+class DateTransformer(app_commands.Transformer):
+    """Transform a string into a UTC datetime.datetime"""
+
+    # pylint: disable=arguments-differ
+    async def transform(self, interaction: discord.Interaction, value: str) -> datetime:
+        "Converts a string to a datetime.datetime."
+        try:
+            date = datetime.fromisoformat(value)
+        except ValueError:
+            try:
+                date = datetime.strptime(value, "%Y-%m-%d %H:%M")
+            except ValueError:
+                try:
+                    date = datetime.strptime(value, "%d/%m/%Y %H:%M")
+                except ValueError:
+                    raise ValueError("Invalid date") from None
+        if not date.tzinfo:
+            date = date.replace(tzinfo=timezone.utc)
+        return date
+
+DateOption = app_commands.Transform[datetime, DateTransformer]
