@@ -26,8 +26,9 @@ class GiveawayView(ui.View):
 
 class ParticipantsPaginator(Paginator):
     "Allows users to see the participants of a giveaway"
-    def __init__(self, client: CObot, user: Union[User, Member], gaw: GiveawayData, participants: list[int]):
+    def __init__(self, client: CObot, embed_color: int, user: Union[User, Member], gaw: GiveawayData, participants: list[int]):
         super().__init__(client, user)
+        self.embed_color = embed_color
         self.title = f"Participants of {gaw['name']}"
         self.participants = participants
         self.page_count = ceil(len(participants) / 20)
@@ -45,13 +46,16 @@ class ParticipantsPaginator(Paginator):
             f"<@{user_id}> ({user_id})"
             for user_id in self.participants[lower_index:upper_index]
         ]
-        if participants_count <= 20:
-            desc_header = f"### {participants_count} participants\n\n"
+        if participants_count == 1:
+            desc_header = "### 1 participant"
+        elif participants_count <= 20:
+            desc_header = f"### {participants_count} participants"
         else:
-            desc_header = f"### Participants {lower_index+1}-{upper_index} out of {participants_count}\n\n"
+            desc_header = f"### Participants {lower_index+1}-{upper_index} out of {participants_count}"
         embed = Embed(
             title=self.title,
-            description=desc_header + "\n".join(page_participants),
+            description=desc_header + "\n\n" + "\n".join(page_participants),
+            color=self.embed_color
         )
         embed.set_footer(text=f"Page {page}/{self.page_count}")
         return {"embed": embed}

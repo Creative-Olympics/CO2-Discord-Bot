@@ -281,7 +281,7 @@ class GiveawaysCog(commands.Cog):
         if not participants:
             await interaction.followup.send("No participants!")
             return
-        view = ParticipantsPaginator(self.bot, interaction.user, gaw, participants)
+        view = ParticipantsPaginator(self.bot, self.embed_color, interaction.user, gaw, participants)
         await view.send_init(interaction)
 
     @gw_list_participants.autocomplete("giveaway")
