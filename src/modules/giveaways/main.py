@@ -11,7 +11,7 @@ from discord.ext import commands, tasks
 
 from src.cobot import CObot, COInteraction
 from src.modules.giveaways.types import GiveawayData, GiveawayToSendData
-from src.modules.giveaways.views import GiveawayView
+from src.modules.giveaways.views import GiveawayView, ParticipantsPaginator
 from src.utils.confirm_view import ConfirmView
 from src.utils.custom_args import ColorOption, DateOption, DurationOption
 
@@ -253,6 +253,40 @@ class GiveawaysCog(commands.Cog):
     @gw_edit.autocomplete("giveaway")
     async def gw_edit_autocomplete(self, interaction: COInteraction, current: str):
         "Autocomplete for the giveaway argument of the edit command"
+        if interaction.guild_id is None:
+            return []
+        current = current.lower()
+        choices: list[tuple[bool, str, Choice[str]]] = []
+        async for gaw in self.bot.fb.get_giveaways():
+            if gaw["guild"] == interaction.guild_id and current in gaw["name"].lower():
+                priority = not gaw["name"].lower().startswith(current)
+                choice = Choice(name=gaw["name"], value=gaw["id"])
+                choices.append((priority, gaw["name"], choice))
+        return [choice for _, _, choice in sorted(choices, key=lambda x: x[0:2])]
+
+    @group.command(name="list-participants")
+    async def gw_list_participants(self, interaction: COInteraction, giveaway: str):
+        "List all participants in a giveaway"
+        if interaction.guild is None:
+            return
+        await interaction.response.defer()
+        gaw = await self.bot.fb.get_giveaway(giveaway)
+        if gaw is None:
+            await interaction.followup.send("Giveaway not found!")
+            return
+        if gaw["guild"] != interaction.guild.id:
+            await interaction.followup.send("You can only list participants of giveaways in your own server!")
+            return
+        participants = await self.bot.fb.get_giveaways_participants(giveaway)
+        if not participants:
+            await interaction.followup.send("No participants!")
+            return
+        view = ParticipantsPaginator(self.bot, interaction.user, gaw, participants)
+        await view.send_init(interaction)
+
+    @gw_list_participants.autocomplete("giveaway")
+    async def gw_list_participants_autocomplete(self, interaction: COInteraction, current: str):
+        "Autocomplete for the giveaway argument of the list-participants command"
         if interaction.guild_id is None:
             return []
         current = current.lower()
