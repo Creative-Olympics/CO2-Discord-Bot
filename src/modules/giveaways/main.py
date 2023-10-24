@@ -298,6 +298,47 @@ class GiveawaysCog(commands.Cog):
                 choices.append((priority, gaw["name"], choice))
         return [choice for _, _, choice in sorted(choices, key=lambda x: x[0:2])]
 
+    @group.command(name="reroll")
+    async def gw_reroll_winners(self, interaction: COInteraction, giveaway: str):
+        "Reroll winners of a giveaway"
+        if interaction.guild is None:
+            return
+        await interaction.response.defer(ephemeral=True)
+        gaw = await self.bot.fb.get_giveaway(giveaway)
+        if gaw is None:
+            await interaction.followup.send("Giveaway not found!")
+            return
+        if gaw["guild"] != interaction.guild.id:
+            await interaction.followup.send("You can only reroll winners of giveaways in your own server!")
+            return
+        if not gaw["ended"]:
+            await interaction.followup.send("You can only reroll winners of ended giveaways!")
+            return
+        gaw["ended"] = False
+        await self.close_giveaway(gaw)
+        winners = gaw["winners"]
+        if len(winners) == 0:
+            txt = "No new winners picked"
+        elif len(winners) == 1:
+            txt = f"1 new winner picked: <@{winners[0]}>"
+        else:
+            txt = f"{len(winners)} new winners picked: {' '.join(f'<@{winner}>' for winner in winners)}"
+        await interaction.followup.send("Giveaway rerolled!\n" + txt, allowed_mentions=discord.AllowedMentions.none())
+
+    @gw_reroll_winners.autocomplete("giveaway")
+    async def gw_reroll_winners_autocomplete(self, interaction: COInteraction, current: str):
+        "Autocomplete for the giveaway argument of the reroll command"
+        if interaction.guild_id is None:
+            return []
+        current = current.lower()
+        choices: list[tuple[bool, str, Choice[str]]] = []
+        async for gaw in self.bot.fb.get_giveaways():
+            if gaw["guild"] == interaction.guild_id and gaw["ended"] and current in gaw["name"].lower():
+                priority = not gaw["name"].lower().startswith(current)
+                choice = Choice(name=gaw["name"], value=gaw["id"])
+                choices.append((priority, gaw["name"], choice))
+        return [choice for _, _, choice in sorted(choices, key=lambda x: x[0:2])]
+
     async def create_active_gaw_embed(self, data: GiveawayToSendData, participants_count: int=0):
         "Create a Discord embed for an active giveaway"
         embed = discord.Embed(
