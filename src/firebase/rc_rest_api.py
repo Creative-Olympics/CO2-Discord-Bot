@@ -1,3 +1,4 @@
+import json
 import logging
 import sys
 from typing import Optional
@@ -39,9 +40,24 @@ class RemoteConfigClient:
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def get(self):
+    async def get_all(self):
         "Get the current Remote Config"
         self.logger.debug("Getting Remote Config")
         async with self.session.get(self.rc_url, headers=self.headers) as resp:
             resp.raise_for_status()
             return await resp.json()
+
+    async def get_parameter_default_value(self, parameter_name: str):
+        "Get the default value for a parameter"
+        self.logger.debug("Getting default value for parameter %s", parameter_name)
+        all_config: dict[str, dict] = (await self.get_all())["parameters"]
+        if (param := all_config.get(parameter_name)) is None:
+            raise KeyError(f"Parameter {parameter_name} not found in Remote Config")
+        default, value_type = param["defaultValue"], param["valueType"]
+        if "value" not in default:
+            return None
+        if value_type == "JSON":
+            return json.loads(default["value"])
+        if value_type == "NUMBER":
+            return float(default["value"])
+        return default["value"]
