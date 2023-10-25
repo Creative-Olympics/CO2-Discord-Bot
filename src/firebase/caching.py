@@ -1,4 +1,7 @@
+from typing import Optional
+
 import discord
+
 from src.modules.giveaways.types import GiveawayData
 
 
@@ -11,6 +14,7 @@ class FirebaseCacheControler:
         self.giveaways_cache: dict[str, GiveawayData] = {}
         self.__are_giveaways_sync = False
         self.__are_active_giveaways_sync = False
+        self.event_start_timestamp: Optional[int] = None
 
     def are_participants_sync(self, giveaway_id: str):
         "Are the participants cached?"

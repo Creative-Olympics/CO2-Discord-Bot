@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import datetime as dt
 from typing import AsyncGenerator, Literal, Optional
 
@@ -156,3 +157,27 @@ class FirebaseDB:
         ref = db.reference(f"giveaways_participants/{giveaway_id}/{user_id}")
         ref.set(True)
         self.cache.add_participant(giveaway_id, user_id)
+
+
+    async def get_event_start_timestamp(self) -> Optional[int]:
+        "Get the event start date"
+        if ts := self.cache.event_start_timestamp:
+            return ts
+        self.log.debug("Fetching event start date from RC")
+        value = await self.rc.get_parameter_default_value("eventTimestamp")
+        if not isinstance(value, (int, float)):
+            return None
+        self.cache.event_start_timestamp = int(value)
+        return int(value)
+
+    async def check_has_event_started(self) -> bool:
+        "Check if the event has started"
+        ts = await self.get_event_start_timestamp()
+        if ts is None: # start date is none means the event has finished
+            return True
+        return ts < time.time()
+
+    async def check_has_event_finished(self) -> bool:
+        "Check if the event has finished"
+        ts = await self.get_event_start_timestamp()
+        return ts is None # start date is none means the event has finished
