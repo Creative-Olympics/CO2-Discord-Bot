@@ -43,7 +43,5 @@ class RemoteConfigClient:
         "Get the current Remote Config"
         self.logger.debug("Getting Remote Config")
         async with self.session.get(self.rc_url, headers=self.headers) as resp:
-            if resp.status == 200:
-                return await resp.json()
-            self.logger.error("Error getting Remote Config: %s", resp.status)
-        return None
+            resp.raise_for_status()
+            return await resp.json()
