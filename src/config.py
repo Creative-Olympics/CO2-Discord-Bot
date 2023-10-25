@@ -12,14 +12,17 @@ class _ConfigType(TypedDict):
     ADMIN_IDS: list[int]
     FIREBASE_REALTIME_DATABASE_URL: str
     FIREBASE_REALTIME_AUTH_UUID: str
+    DONATION_URL: str
 
 
 class Config:
+    "Load the config.json file and check its integrity"
+
     def __init__(self):
         with open("config.json", "r", encoding="utf-8") as file:
             self.data: _ConfigType = json.load(file)
         self.check_integrity()
-    
+
     @overload
     def __getitem__(self, key: Literal["DISCORD_RELEASE_TOKEN"]) -> str: ...
 
@@ -40,6 +43,9 @@ class Config:
 
     @overload
     def __getitem__(self, key: Literal["FIREBASE_REALTIME_AUTH_UUID"]) -> str: ...
+
+    @overload
+    def __getitem__(self, key: Literal["DONATION_URL"]) -> str: ...
 
     def __getitem__(self, key: str):
         return self.data[key]
