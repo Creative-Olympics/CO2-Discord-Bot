@@ -14,8 +14,8 @@ from discord.ext import commands
 from git import GitCommandError
 from git.repo import Repo
 
-from src.utils.checks import is_bot_admin
 from src.cobot import CObot, COInteraction
+from src.utils.checks import is_bot_admin
 
 
 def cleanup_code(content: str):
