@@ -6,17 +6,19 @@ import firebase_admin
 from firebase_admin import credentials, db
 
 from src.firebase.caching import FirebaseCacheControler
+from src.firebase.rc_rest_api import RemoteConfigClient
 from src.modules.giveaways.types import GiveawayData, RawGiveawayData
 
 
 class FirebaseDB:
     "Firebase client class to access the database"
 
-    def __init__(self, filename: str, realtime_url: str):
-        cred = credentials.Certificate(filename)
+    def __init__(self, config_filename: str, realtime_url: str):
+        cred = credentials.Certificate(config_filename)
         self.app = firebase_admin.initialize_app(cred, {
             'databaseURL': realtime_url,
         })
+        self.rc = RemoteConfigClient(cred)
         self.cache = FirebaseCacheControler()
         self.log = logging.getLogger("cobot.firebase")
 
