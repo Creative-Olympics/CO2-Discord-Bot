@@ -29,8 +29,9 @@ class InfoCog(commands.Cog):
         embed = discord.Embed(
             title="Donation link",
             description=f"Here's the link to donate: [creative-olympics.org/donate]({url})",
-            color=discord.Color.green()
+            color=0xF7B114,
         )
+        embed.set_image(url="https://co.rahmouni.dev/bot/heartBanner.gif")
         await interaction.response.send_message(embed=embed)
 
 
